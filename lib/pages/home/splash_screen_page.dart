@@ -17,7 +17,7 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
     _navigateToHome();
   }
 
-  _navigateToHome() async {
+  Future<void> _navigateToHome() async {
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
     context.go('/sign-in');

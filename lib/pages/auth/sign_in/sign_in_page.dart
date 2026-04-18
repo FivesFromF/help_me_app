@@ -4,9 +4,59 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
+import 'package:help_me_app/shared/services/auth_service.dart';
 
-class SignInPage extends StatelessWidget {
+class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
+
+  @override
+  State<SignInPage> createState() => _SignInPageState();
+}
+
+class _SignInPageState extends State<SignInPage> {
+  final TextEditingController _phoneController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập số điện thoại')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final res = await AuthService.requestOTP(phone);
+      if (mounted) {
+        if (res['success'] == true) {
+          context.push('/auth/otp-verification', extra: {
+            'title': 'Đăng nhập với SĐT: $phone',
+            'subtitle': 'Mã OTP đã được gửi về số điện thoại của bạn',
+            'onConfirm': () => context.go('/home'),
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +64,7 @@ class SignInPage extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Decorative Circles (reusing the new layout from splash)
+          // Background Decorative Circles
           Positioned(
             top: -250,
             left: -250,
@@ -51,20 +101,7 @@ class SignInPage extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            bottom: -100,
-            right: -80,
-            child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
 
-          // Content
           SafeArea(
             child: Column(
               children: [
@@ -111,12 +148,7 @@ class SignInPage extends StatelessWidget {
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                          bottomLeft: Radius.circular(30),
-                          bottomRight: Radius.circular(30),
-                        ),
+                        borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
@@ -140,6 +172,7 @@ class SignInPage extends StatelessWidget {
                             const SizedBox(height: 40),
                             // Phone Input
                             TextFormField(
+                              controller: _phoneController,
                               decoration: InputDecoration(
                                 hintText: 'Số điện thoại',
                                 prefixIcon: Icon(
@@ -170,7 +203,7 @@ class SignInPage extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () {},
+                                    onPressed: _isLoading ? null : _handleLogin,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primaryOrange,
                                       padding: const EdgeInsets.symmetric(
@@ -180,14 +213,23 @@ class SignInPage extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                     ),
-                                    child: const Text(
-                                      'Đăng nhập',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Đăng nhập',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 15),
@@ -215,17 +257,22 @@ class SignInPage extends StatelessWidget {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Divider(color: AppColors.primaryOrange.withOpacity(0.3) ),
+                                  child: Divider(
+                                      color: AppColors.primaryOrange
+                                          .withOpacity(0.3)),
                                 ),
                                 const Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 10),
                                   child: Text(
                                     'Hoặc',
-                                    style: TextStyle(color: AppColors.primaryOrange),
+                                    style: TextStyle(
+                                        color: AppColors.primaryOrange),
                                   ),
                                 ),
                                 Expanded(
-                                  child: Divider(color: AppColors.primaryOrange.withOpacity(0.3)),
+                                  child: Divider(
+                                      color: AppColors.primaryOrange
+                                          .withOpacity(0.3)),
                                 ),
                               ],
                             ),
@@ -281,7 +328,7 @@ class SignInPage extends StatelessWidget {
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () => context
-                                          .push('/auth/sign-up-personal-info'),
+                                          .push('/auth/sign-up'),
                                   ),
                                 ],
                               ),

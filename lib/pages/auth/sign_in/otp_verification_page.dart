@@ -5,8 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/widgets/otp_input_widget.dart';
+import 'package:help_me_app/shared/services/auth_service.dart';
 
-class OtpVerificationPage extends StatelessWidget {
+class OtpVerificationPage extends StatefulWidget {
   final String title;
   final String? subtitle;
   final VoidCallback onConfirm;
@@ -17,6 +18,53 @@ class OtpVerificationPage extends StatelessWidget {
     this.subtitle,
     required this.onConfirm,
   });
+
+  @override
+  State<OtpVerificationPage> createState() => _OtpVerificationPageState();
+}
+
+class _OtpVerificationPageState extends State<OtpVerificationPage> {
+  String _otpCode = '';
+  bool _isSubmitting = false;
+
+  Future<void> _handleVerify() async {
+    if (_otpCode.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập đầy đủ mã OTP')),
+      );
+      return;
+    }
+
+    // Extract phone from title "Đăng nhập với SĐT: 0362718422"
+    String phone = '';
+    if (widget.title.contains(':')) {
+      phone = widget.title.split(':').last.trim();
+    } else {
+      phone = '0362718422'; // fallback
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final res = await AuthService.verifyOTP(phone, _otpCode);
+      if (mounted) {
+        if (res['token'] != null) {
+          // Token received, handle session (for MVP just navigate)
+          widget.onConfirm();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -110,17 +158,18 @@ class OtpVerificationPage extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              title,
+                              widget.title,
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primaryBlack,
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            if (subtitle != null) ...[
+                            if (widget.subtitle != null) ...[
                               const SizedBox(height: 10),
                               Text(
-                                subtitle!,
+                                widget.subtitle!,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey,
@@ -131,7 +180,7 @@ class OtpVerificationPage extends StatelessWidget {
                             const SizedBox(height: 40),
                             OtpInputWidget(
                               onCompleted: (otp) {
-                                // OTP completed logic
+                                setState(() => _otpCode = otp);
                               },
                             ),
                             const SizedBox(height: 40),
@@ -139,7 +188,8 @@ class OtpVerificationPage extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: onConfirm,
+                                    onPressed:
+                                        _isSubmitting ? null : _handleVerify,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primaryOrange,
                                       padding: const EdgeInsets.symmetric(
@@ -148,24 +198,36 @@ class OtpVerificationPage extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                     ),
-                                    child: const Text(
-                                      'Xác nhận',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                                    child: _isSubmitting
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Xác nhận',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 15),
                                 TextButton.icon(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    // Resend logic could be added here
+                                  },
                                   icon: const Text('Gửi lại',
                                       style: TextStyle(
                                           color: AppColors.primaryBlack,
                                           fontWeight: FontWeight.bold)),
-                                  label: const Icon(PhosphorIconsRegular.arrowClockwise,
+                                  label: const Icon(
+                                      PhosphorIconsRegular.arrowClockwise,
                                       color: AppColors.primaryBlack),
                                 ),
                               ],
