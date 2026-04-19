@@ -14,35 +14,36 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
-  final TextEditingController _phoneController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _handleLogin() async {
-    final phone = _phoneController.text.trim();
-    if (phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập số điện thoại')),
-      );
-      return;
-    }
-
+  Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
 
     try {
-      final res = await AuthService.requestOTP(phone);
+      final res = await AuthService.signInWithGoogle();
       if (mounted) {
-        if (res['success'] == true) {
-          context.push('/auth/otp-verification', extra: {
-            'title': 'Đăng nhập với SĐT: $phone',
-            'subtitle': 'Mã OTP đã được gửi về số điện thoại của bạn',
-            'onConfirm': () => context.go('/home'),
-          });
+        // Kiểm tra xem user đã hoàn thiện profile chưa
+        // Nếu fullName vẫn là email hoặc rỗng (do tự động provision)
+        // Hoặc dựa vào một flag trong profile trả về
+        final citizen = res['citizen'];
+        if (citizen != null && 
+            (citizen['fullName'] == null || 
+             citizen['fullName'] == citizen['email'] || 
+             citizen['cccdNumber'] == null)) {
+          // Lần đầu đăng nhập -> Yêu cầu hoàn thiện hồ sơ
+          context.go('/auth/sign-up');
+        } else {
+          // Đã có profile -> Vào Home luôn
+          context.go('/home');
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${e.toString()}')),
+          SnackBar(
+            content: Text('Lỗi đăng nhập: ${e.toString()}'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -53,318 +54,205 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   @override
-  void dispose() {
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Decorative Circles
+          // Background Decorative Elements (Premium Glassmorphism style)
           Positioned(
-            top: -250,
-            left: -250,
-            child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.4),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            top: -150,
-            left: -150,
+            top: -100,
+            right: -100,
             child: Container(
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.6),
+                color: AppColors.primaryGreen.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
             ),
           ),
           Positioned(
-            bottom: -200,
-            right: -150,
+            bottom: -50,
+            left: -50,
             child: Container(
-              width: 600,
-              height: 600,
+              width: 250,
+              height: 250,
               decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.3),
+                color: AppColors.primaryOrange.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
             ),
           ),
 
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                // Header Logo
-                Center(
-                  child: Column(
-                    children: [
-                      SvgPicture.asset(
-                        'assets/logo.svg',
-                        width: 120,
-                        height: 120,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 60),
+                  // App Logo & Branding
+                  SvgPicture.asset(
+                    'assets/logo.svg',
+                    width: 140,
+                    height: 140,
+                  ),
+                  const SizedBox(height: 20),
+                  RichText(
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Inter',
+                        letterSpacing: -0.5,
                       ),
-                      const SizedBox(height: 10),
-                      RichText(
-                        text: const TextSpan(
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Inter',
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Sinh mệnh ',
-                              style: TextStyle(color: AppColors.primaryGreen),
-                            ),
-                            TextSpan(
-                              text: 'Khẩn cấp',
-                              style: TextStyle(color: AppColors.primaryOrange),
-                            ),
-                          ],
+                      children: [
+                        TextSpan(
+                          text: 'Help',
+                          style: TextStyle(color: AppColors.primaryBlack),
+                        ),
+                        TextSpan(
+                          text: 'Me',
+                          style: TextStyle(color: AppColors.primaryGreen),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Text(
+                    'Sứ mệnh bảo vệ sự sống',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+
+                  // Main Title
+                  const Text(
+                    'Chào mừng bạn',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlack,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Đăng nhập để sử dụng các tính năng cứu hộ và bảo vệ sức khỏe',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 50),
+
+                  // Google Sign In Button (Premium)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleGoogleSignIn,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primaryBlack,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: Colors.grey.shade200),
                         ),
                       ),
-                    ],
+                      child: _isLoading
+                          ? const CircularProgressIndicator()
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Google Icon
+                                SvgPicture.network(
+                                  'https://www.vectorlogo.zone/logos/google/google-icon.svg',
+                                  width: 24,
+                                  height: 24,
+                                ),
+                                const SizedBox(width: 15),
+                                const Text(
+                                  'Tiếp tục với Google',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 30),
-                // Sign In Card
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+
+                  const SizedBox(height: 20),
+
+                  // VNeID Fallback (Option)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // Demo placeholder
+                      },
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: const BorderSide(color: AppColors.primaryGreen),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Sử dụng tài khoản VNeID',
+                            style: TextStyle(
+                              color: AppColors.primaryGreen,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Image.asset(
+                            'assets/vneid_logo.png',
+                            height: 24,
                           ),
                         ],
                       ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Đăng nhập',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryBlack,
-                              ),
-                            ),
-                            const SizedBox(height: 40),
-                            // Phone Input
-                            TextFormField(
-                              controller: _phoneController,
-                              decoration: InputDecoration(
-                                hintText: 'Số điện thoại',
-                                prefixIcon: Icon(
-                                  PhosphorIconsFill.phone,
-                                  color: AppColors.primaryOrange,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide(
-                                    color: AppColors.secondaryBlack,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide(
-                                    color: AppColors.secondaryBlack,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                              ),
-                              keyboardType: TextInputType.phone,
-                            ),
-                            const SizedBox(height: 20),
-                            // Sign In Buttons Row
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _handleLogin,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryOrange,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                    ),
-                                    child: _isLoading
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Text(
-                                            'Đăng nhập',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(width: 15),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.tertiaryBlack,
-                                    borderRadius: BorderRadius.circular(15),
-                                    border: Border.all(
-                                      color: AppColors.secondaryBlack,
-                                    ),
-                                  ),
-                                  child: IconButton(
-                                    onPressed: () {},
-                                    icon: Icon(
-                                      PhosphorIconsRegular.userFocus,
-                                      size: 30,
-                                      color: AppColors.primaryBlack,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 30),
-                            // Divider
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Divider(
-                                      color: AppColors.primaryOrange
-                                          .withOpacity(0.3)),
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text(
-                                    'Hoặc',
-                                    style: TextStyle(
-                                        color: AppColors.primaryOrange),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Divider(
-                                      color: AppColors.primaryOrange
-                                          .withOpacity(0.3)),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 30),
-                            // VNeID Button
-                            ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryGreen,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Text(
-                                    'Tài khoản định danh điện tử',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Image.asset(
-                                    'assets/vneid_logo.png',
-                                    height: 30,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 40),
-                            // Footer Links
-                            Text.rich(
-                              TextSpan(
-                                text: 'Bạn chưa có tài khoản? ',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: 'Đăng ký tại đây!',
-                                    style: const TextStyle(
-                                      color: AppColors.primaryGreen,
-                                      fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () => context
-                                          .push('/auth/sign-up'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 15),
-                            Text.rich(
-                              TextSpan(
-                                text: 'Bạn là nhân viên y tế? ',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: 'Đăng nhập tại đây!',
-                                    style: const TextStyle(
-                                      color: AppColors.primaryGreen,
-                                      fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () =>
-                                          context.push('/auth/staff-sign-in'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-              ],
+
+                  const SizedBox(height: 40),
+
+                  // Staff Login Link
+                  Text.rich(
+                    TextSpan(
+                      text: 'Bạn là nhân viên y tế? ',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: 'Đăng nhập tại đây',
+                          style: const TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => context.push('/auth/staff-sign-in'),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ],

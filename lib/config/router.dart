@@ -2,7 +2,6 @@ import 'package:go_router/go_router.dart';
 import 'package:help_me_app/pages/auth/sign_in/sign_in_page.dart';
 import 'package:help_me_app/pages/auth/sign_up/citizen_sign_up_wizard_page.dart';
 import 'package:help_me_app/pages/auth/sign_in/staff_sign_in_page.dart';
-import 'package:help_me_app/pages/auth/sign_in/otp_verification_page.dart';
 import '../pages/home/splash_screen_page.dart';
 import '../pages/home/home_page.dart';
 import '../pages/details_page.dart';
@@ -10,28 +9,30 @@ import '../pages/details_page.dart';
 final router = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const SplashScreenPage()),
-    GoRoute(path: '/sign-in', builder: (context, state) => const SignInPage()),
+    GoRoute(
+      path: '/', 
+      builder: (context, state) => const SplashScreenPage()
+    ),
+    GoRoute(
+      path: '/sign-in', 
+      builder: (context, state) => const SignInPage()
+    ),
     GoRoute(
       path: '/auth/staff-sign-in',
       builder: (context, state) => const StaffSignInPage(),
     ),
-    GoRoute(
-      path: '/auth/otp-verification',
-      builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>?;
-        return OtpVerificationPage(
-          title: extra?['title'] ?? 'Xác nhận OTP',
-          subtitle: extra?['subtitle'],
-          onConfirm: extra?['onConfirm'] ?? () {},
-        );
-      },
-    ),
+    
+    // Màn hình hoàn thiện hồ sơ (Citizen Profile Completion)
     GoRoute(
       path: '/auth/sign-up',
       builder: (context, state) => const CitizenSignUpWizardPage(),
     ),
-    GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+    
+    GoRoute(
+      path: '/home', 
+      builder: (context, state) => const HomePage()
+    ),
+    
     GoRoute(
       path: '/details/:message',
       builder: (context, state) {

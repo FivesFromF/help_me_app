@@ -17,10 +17,9 @@ class StaffSignInPage extends StatefulWidget {
 class _StaffSignInPageState extends State<StaffSignInPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
   
   bool _isLoading = false;
-  bool _showOTPField = false;
+  bool _isPasswordVisible = false;
 
   Future<void> _handleStaffLogin() async {
     final email = _emailController.text.trim();
@@ -37,60 +36,25 @@ class _StaffSignInPageState extends State<StaffSignInPage> {
 
     try {
       final res = await AuthService.staffSignIn(email, password);
-      // In multi-step flow, res['token'] might be empty string or null 
-      // when password is correct but OTP is sent.
+      // Backend returns role and profile (Staff or Admin)
       if (mounted) {
-        if (res['token'] != null && res['token'].toString().isNotEmpty) {
-          // Immediate login (no MFA or pre-verified)
+        final role = res['role'];
+        if (role == 'staff' || role == 'admin') {
           context.go('/home');
         } else {
-          // Password accepted, waiting for OTP
-          setState(() {
-            _showOTPField = true;
-          });
+          // Safety check: if somehow a citizen tries to use staff login
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Mật khẩu chính xác. Vui lòng nhập mã OTP đã gửi đến SĐT của bạn.')),
+            const SnackBar(content: Text('Tài khoản này không có quyền truy cập cổng nhân viên')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${e.toString()}')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _handleVerifyOTP() async {
-    final email = _emailController.text.trim();
-    final otp = _otpController.text.trim();
-
-    if (otp.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập mã OTP 6 chữ số')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Reusing verifyOTP endpoint - backend handler logic now supports email too
-      final res = await AuthService.verifyOTP(email, otp);
-      if (mounted) {
-        if (res['token'] != null) {
-          context.go('/home');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mã OTP không hợp lệ hoặc đã hết hạn: ${e.toString()}')),
+          SnackBar(
+            content: Text('Đăng nhập thất bại: ${e.toString()}'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -104,7 +68,6 @@ class _StaffSignInPageState extends State<StaffSignInPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
@@ -114,160 +77,157 @@ class _StaffSignInPageState extends State<StaffSignInPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Decorative Circles (Keeping same UI)
-          Positioned(top: -250, left: -250,
-            child: Container(width: 500, height: 500, decoration: BoxDecoration(color: AppColors.secondaryGreen.withOpacity(0.4), shape: BoxShape.circle))),
-          Positioned(top: -150, left: -150,
-            child: Container(width: 300, height: 300, decoration: BoxDecoration(color: AppColors.secondaryGreen.withOpacity(0.6), shape: BoxShape.circle))),
-          Positioned(bottom: -200, right: -150,
-            child: Container(width: 600, height: 600, decoration: BoxDecoration(color: AppColors.secondaryGreen.withOpacity(0.3), shape: BoxShape.circle))),
+          // Decorative background
+          Positioned(
+            top: -150,
+            left: -150,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
 
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    SvgPicture.asset('assets/logo.svg', width: 120),
+                    Hero(
+                      tag: 'logo',
+                      child: SvgPicture.asset('assets/logo.svg', width: 100),
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      'CỔNG NHÂN VIÊN',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primaryBlack,
+                        letterSpacing: 3,
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    RichText(
-                      text: const TextSpan(
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
+                    const Text(
+                      'Dành cho Đội ngũ Y tế & Quản trị viên',
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                    const SizedBox(height: 50),
+
+                    // Login Form Card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                        border: Border.all(color: Colors.grey.shade100),
+                      ),
+                      child: Column(
                         children: [
-                          TextSpan(text: 'Sinh mệnh ', style: TextStyle(color: AppColors.primaryGreen)),
-                          TextSpan(text: 'Khẩn cấp', style: TextStyle(color: AppColors.primaryOrange)),
+                          CustomTextField(
+                            controller: _emailController,
+                            hintText: 'Email nhân viên',
+                            prefixIcon: const Icon(PhosphorIconsFill.envelope, color: AppColors.primaryOrange),
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            controller: _passwordController,
+                            hintText: 'Mật khẩu',
+                            obscureText: !_isPasswordVisible,
+                            prefixIcon: const Icon(PhosphorIconsFill.key, color: AppColors.primaryOrange),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible ? PhosphorIconsFill.eye : PhosphorIconsFill.eyeSlash,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {}, // Placeholder for forgot password
+                              child: const Text(
+                                'Quên mật khẩu?',
+                                style: TextStyle(color: AppColors.primaryBlack, fontSize: 13),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _handleStaffLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlack,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              child: _isLoading 
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text('Đăng nhập hệ thống', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                          ),
                         ],
                       ),
                     ),
+                    
                     const SizedBox(height: 40),
-
-                    // Card
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
-                        ),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: _showOTPField ? _buildOTPForm() : _buildLoginForm(),
-                        ),
+                    
+                    // Switch to Citizen
+                    Text.rich(
+                      TextSpan(
+                        text: 'Bạn là công dân? ',
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        children: [
+                          TextSpan(
+                            text: 'Quay lại cổng chính',
+                            style: const TextStyle(
+                              color: AppColors.primaryGreen, 
+                              fontWeight: FontWeight.bold, 
+                              decoration: TextDecoration.underline
+                            ),
+                            recognizer: TapGestureRecognizer()..onTap = () => context.go('/sign-in'),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
           ),
-          // Back button
+          
+          // Floating back button
           Positioned(
-            top: 40,
-            left: 10,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.primaryBlack),
-              onPressed: () {
-                if (_showOTPField) {
-                  setState(() => _showOTPField = false);
-                } else {
-                  context.go('/sign-in');
-                }
-              },
+            top: 20,
+            left: 20,
+            child: SafeArea(
+              child: CircleAvatar(
+                backgroundColor: Colors.grey.shade100,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.primaryBlack),
+                  onPressed: () => context.go('/sign-in'),
+                ),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoginForm() {
-    return Column(
-      key: const ValueKey('LoginForm'),
-      children: [
-        const Text('Nhân viên y tế', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryBlack)),
-        const SizedBox(height: 40),
-        CustomTextField(
-          controller: _emailController,
-          hintText: 'Địa chỉ email',
-          prefixIcon: const Icon(PhosphorIconsFill.envelope, color: AppColors.primaryOrange, size: 24),
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 20),
-        CustomTextField(
-          controller: _passwordController,
-          hintText: 'Mật khẩu',
-          obscureText: true,
-          prefixIcon: const Icon(PhosphorIconsFill.key, color: AppColors.primaryOrange, size: 24),
-        ),
-        const SizedBox(height: 30),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleStaffLogin,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryOrange,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            ),
-            child: _isLoading ? _buildLoading() : const Text('Tiếp tục', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
-        ),
-        const SizedBox(height: 30),
-        _buildSwitchToCitizen(),
-      ],
-    );
-  }
-
-  Widget _buildOTPForm() {
-    return Column(
-      key: const ValueKey('OTPForm'),
-      children: [
-        const Text('Xác minh OTP', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryBlack)),
-        const SizedBox(height: 10),
-        Text('Mã OTP đã được gửi đến SĐT liên kết với email ${_emailController.text}', 
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: Colors.grey)),
-        const SizedBox(height: 40),
-        CustomTextField(
-          controller: _otpController,
-          hintText: 'Mã xác thực 6 số',
-          keyboardType: TextInputType.number,
-          prefixIcon: const Icon(PhosphorIconsFill.shieldCheck, color: AppColors.primaryOrange, size: 24),
-        ),
-        const SizedBox(height: 30),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleVerifyOTP,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-            child: _isLoading ? _buildLoading() : const Text('Xác nhận & Đăng nhập', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
-        ),
-        const SizedBox(height: 20),
-        TextButton(
-          onPressed: _isLoading ? null : _handleStaffLogin,
-          child: const Text('Gửi lại mã OTP', style: TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoading() {
-    return const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white));
-  }
-
-  Widget _buildSwitchToCitizen() {
-    return Text.rich(
-      TextSpan(
-        text: 'Bạn là công dân? ',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-        children: [
-          TextSpan(
-            text: 'Đăng nhập tại đây!',
-            style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-            recognizer: TapGestureRecognizer()..onTap = () => context.go('/sign-in'),
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:go_router/go_router.dart';
+import 'package:help_me_app/shared/services/auth_service.dart';
 
 class SplashScreenPage extends StatefulWidget {
   const SplashScreenPage({super.key});
@@ -14,13 +15,27 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
+    _initializeApp();
   }
 
-  Future<void> _navigateToHome() async {
-    await Future.delayed(const Duration(seconds: 3));
+  Future<void> _initializeApp() async {
+    // Để Splash Screen hiển thị ít nhất 2 giây cho premium feel
+    await Future.delayed(const Duration(seconds: 2));
+    
     if (!mounted) return;
-    context.go('/sign-in');
+
+    // Kiểm tra trạng thái đăng nhập
+    final loggedIn = await AuthService.isLoggedIn();
+    
+    if (mounted) {
+      if (loggedIn) {
+        // Nếu đã login, vào thẳng Home
+        context.go('/home');
+      } else {
+        // Chưa login, ra màn hình Sign In
+        context.go('/sign-in');
+      }
+    }
   }
 
   @override
@@ -29,83 +44,94 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Top Left Decorative Circles
+          // Decorative Elements
           Positioned(
-            top: -250,
-            left: -250,
-            child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.4),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            top: -150,
-            left: -150,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.6),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          // Bottom Right Decorative Circles
-          Positioned(
-            bottom: -200,
-            right: -150,
-            child: Container(
-              width: 600,
-              height: 600,
-              decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -100,
-            right: -80,
+            top: -200,
+            left: -200,
             child: Container(
               width: 400,
               height: 400,
               decoration: BoxDecoration(
-                color: AppColors.secondaryGreen.withOpacity(0.5),
+                color: AppColors.primaryGreen.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
             ),
           ),
-          // Central Content
+          Positioned(
+            bottom: -150,
+            right: -150,
+            child: Container(
+              width: 500,
+              height: 500,
+              decoration: BoxDecoration(
+                color: AppColors.primaryOrange.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          // Central Logo & Name
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SvgPicture.asset('assets/logo.svg', width: 180, height: 180),
-                const SizedBox(height: 20),
+                Hero(
+                  tag: 'logo',
+                  child: SvgPicture.asset(
+                    'assets/logo.svg', 
+                    width: 160, 
+                    height: 160
+                  ),
+                ),
+                const SizedBox(height: 24),
                 RichText(
                   text: const TextSpan(
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
                       fontFamily: 'Inter',
+                      letterSpacing: -1,
                     ),
                     children: [
                       TextSpan(
-                        text: 'Sinh mệnh ',
-                        style: TextStyle(color: AppColors.primaryGreen),
+                        text: 'Help',
+                        style: TextStyle(color: AppColors.primaryBlack),
                       ),
                       TextSpan(
-                        text: 'Khẩn cấp',
-                        style: TextStyle(color: AppColors.primaryOrange),
+                        text: 'Me',
+                        style: TextStyle(color: AppColors.primaryGreen),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 8),
+                const Text(
+                  'ỨNG DỤNG HỖ TRỢ Y TẾ KHẨN CẤP',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
               ],
+            ),
+          ),
+          
+          // Bottom Loading Indicator
+          const Positioned(
+            bottom: 60,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                ),
+              ),
             ),
           ),
         ],
