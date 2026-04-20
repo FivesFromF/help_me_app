@@ -157,7 +157,7 @@ class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
           controller: _phoneController,
           hintText: 'Số điện thoại liên lạc',
           keyboardType: TextInputType.phone,
-          prefixIcon: const Icon(PhosphorIconsRegular.phoneCircle, color: AppColors.primaryOrange),
+          prefixIcon: const Icon(PhosphorIconsRegular.phone, color: AppColors.primaryOrange),
         ),
         const SizedBox(height: 40),
         _buildActionButton('Hoàn tất hồ sơ', _handleCompleteProfile),

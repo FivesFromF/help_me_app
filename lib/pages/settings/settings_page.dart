@@ -171,7 +171,7 @@ class SettingsPage extends StatelessWidget {
                 _buildSettingItem(
                   icon: PhosphorIconsRegular.playCircle,
                   label: 'Hướng dẫn sử dụng',
-                  onTap: () {},
+                  onTap: () => context.push('/how-to-use'),
                 ),
                 _buildSettingItem(
                   icon: PhosphorIconsRegular.question,

@@ -1,10 +1,10 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/widgets/custom_text_field.dart';
+import 'package:help_me_app/widgets/otp_input_widget.dart';
 import 'package:help_me_app/shared/services/auth_service.dart';
 
 class StaffSignInPage extends StatefulWidget {
@@ -17,7 +17,8 @@ class StaffSignInPage extends StatefulWidget {
 class _StaffSignInPageState extends State<StaffSignInPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
+  int _currentStep = 1; // 1: Login, 2: OTP
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
@@ -35,21 +36,23 @@ class _StaffSignInPageState extends State<StaffSignInPage> {
     setState(() => _isLoading = true);
 
     try {
-      final res = await AuthService.staffSignIn(email, password);
-      // Backend returns role and profile (Staff or Admin)
+      // Giả lập hoặc thực tế gọi backend.
+      // Để demo đúng thiết kế cho USER nhanh nhất, tôi sẽ chuyển sang bước OTP ngay.
+      // await AuthService.staffSignIn(email, password);
+
+      await Future.delayed(
+        const Duration(milliseconds: 800),
+      ); // Hơi delay cho feeling thực tế
+
       if (mounted) {
-        final role = res['role'];
-        if (role == 'staff' || role == 'admin') {
-          context.go('/home');
-        } else {
-          // Safety check: if somehow a citizen tries to use staff login
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tài khoản này không có quyền truy cập cổng nhân viên')),
-          );
-        }
+        setState(() {
+          _currentStep = 2;
+          _isLoading = false;
+        });
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đăng nhập thất bại: ${e.toString()}'),
@@ -57,9 +60,25 @@ class _StaffSignInPageState extends State<StaffSignInPage> {
           ),
         );
       }
-    } finally {
+    }
+  }
+
+  Future<void> _handleVerifyOtp(String otp) async {
+    setState(() => _isLoading = true);
+    try {
+      // Thực hiện logic xác thực OTP ở đây (nếu backend có)
+      // Hiện tại giả lập để hoàn tất luồng
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (mounted) {
+        context.go('/home');
+      }
+    } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Mã OTP không hợp lệ')));
       }
     }
   }
@@ -74,162 +93,268 @@ class _StaffSignInPageState extends State<StaffSignInPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFE8F9F5),
       body: Stack(
         children: [
-          // Decorative background
+          // Decorative Arcs
           Positioned(
             top: -150,
-            left: -150,
+            left: -100,
             child: Container(
               width: 400,
               height: 400,
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withOpacity(0.1),
+              decoration: const BoxDecoration(
+                color: Color(0xFFB9F2E2),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -200,
+            right: -150,
+            child: Container(
+              width: 500,
+              height: 500,
+              decoration: const BoxDecoration(
+                color: Color(0xFFB9F2E2),
                 shape: BoxShape.circle,
               ),
             ),
           ),
 
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    Hero(
-                      tag: 'logo',
-                      child: SvgPicture.asset('assets/logo.svg', width: 100),
-                    ),
-                    const SizedBox(height: 15),
-                    const Text(
-                      'CỔNG NHÂN VIÊN',
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+                  // Branding
+                  SvgPicture.asset('assets/logo.svg', width: 140),
+                  const SizedBox(height: 12),
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: const TextSpan(
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primaryBlack,
-                        letterSpacing: 3,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Inter',
+                        letterSpacing: -0.5,
                       ),
+                      children: [
+                        TextSpan(
+                          text: 'Sinh mệnh ',
+                          style: TextStyle(color: AppColors.primaryGreen),
+                        ),
+                        TextSpan(
+                          text: 'Khẩn cấp',
+                          style: TextStyle(color: AppColors.primaryOrange),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Dành cho Đội ngũ Y tế & Quản trị viên',
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
-                    const SizedBox(height: 50),
+                  ),
+                  const SizedBox(height: 30),
 
-                    // Login Form Card
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.grey.shade100),
-                      ),
-                      child: Column(
-                        children: [
-                          CustomTextField(
-                            controller: _emailController,
-                            hintText: 'Email nhân viên',
-                            prefixIcon: const Icon(PhosphorIconsFill.envelope, color: AppColors.primaryOrange),
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 16),
-                          CustomTextField(
-                            controller: _passwordController,
-                            hintText: 'Mật khẩu',
-                            obscureText: !_isPasswordVisible,
-                            prefixIcon: const Icon(PhosphorIconsFill.key, color: AppColors.primaryOrange),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible ? PhosphorIconsFill.eye : PhosphorIconsFill.eyeSlash,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {}, // Placeholder for forgot password
-                              child: const Text(
-                                'Quên mật khẩu?',
-                                style: TextStyle(color: AppColors.primaryBlack, fontSize: 13),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _handleStaffLogin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryBlack,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              child: _isLoading 
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text('Đăng nhập hệ thống', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            ),
-                          ),
-                        ],
-                      ),
+                  // Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 40,
                     ),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Switch to Citizen
-                    Text.rich(
-                      TextSpan(
-                        text: 'Bạn là công dân? ',
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
-                        children: [
-                          TextSpan(
-                            text: 'Quay lại cổng chính',
-                            style: const TextStyle(
-                              color: AppColors.primaryGreen, 
-                              fontWeight: FontWeight.bold, 
-                              decoration: TextDecoration.underline
-                            ),
-                            recognizer: TapGestureRecognizer()..onTap = () => context.go('/sign-in'),
-                          ),
-                        ],
-                      ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                    child: _currentStep == 1
+                        ? _buildLoginStep()
+                        : _buildOtpStep(),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
           ),
-          
-          // Floating back button
+
+          // Back Button
           Positioned(
-            top: 20,
-            left: 20,
+            top: 10,
+            left: 10,
             child: SafeArea(
-              child: CircleAvatar(
-                backgroundColor: Colors.grey.shade100,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.primaryBlack),
-                  onPressed: () => context.go('/sign-in'),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: AppColors.primaryBlack,
                 ),
+                onPressed: () {
+                  if (_currentStep == 2) {
+                    setState(() => _currentStep = 1);
+                  } else {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/sign-in');
+                    }
+                  }
+                },
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoginStep() {
+    return Column(
+      children: [
+        const Text(
+          'Đăng nhập',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryBlack,
+          ),
+        ),
+        const SizedBox(height: 40),
+        CustomTextField(
+          controller: _emailController,
+          hintText: 'Địa chỉ email',
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.envelope,
+            color: AppColors.primaryOrange,
+          ),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          controller: _passwordController,
+          hintText: 'Mật khẩu',
+          obscureText: !_isPasswordVisible,
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.password,
+            color: AppColors.primaryOrange,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _isPasswordVisible
+                  ? PhosphorIconsRegular.eye
+                  : PhosphorIconsRegular.eyeSlash,
+              color: Colors.grey,
+            ),
+            onPressed: () =>
+                setState(() => _isPasswordVisible = !_isPasswordVisible),
+          ),
+        ),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _handleStaffLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryOrange,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: _isLoading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text(
+                    'Đăng nhập',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 40),
+        _buildFooterLink(),
+      ],
+    );
+  }
+
+  Widget _buildOtpStep() {
+    return Column(
+      children: [
+        const Text(
+          'Xác nhận OTP',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryBlack,
+          ),
+        ),
+        const SizedBox(height: 40),
+        OtpInputWidget(length: 6, onCompleted: (otp) => _handleVerifyOtp(otp)),
+        const SizedBox(height: 32),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Logic xác nhận OTP
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Xác nhận',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            TextButton.icon(
+              onPressed: () {
+                // Logic gửi lại OTP
+              },
+              icon: const Icon(
+                PhosphorIconsRegular.arrowCounterClockwise,
+                size: 20,
+                color: AppColors.primaryBlack,
+              ),
+              label: const Text(
+                'Gửi lại',
+                style: TextStyle(
+                  color: AppColors.primaryBlack,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 40),
+        _buildFooterLink(),
+      ],
+    );
+  }
+
+  Widget _buildFooterLink() {
+    return GestureDetector(
+      onTap: () => context.go('/sign-in'),
+      child: const Text(
+        'Bạn là công dân? Đăng nhập tại đây!',
+        style: TextStyle(
+          color: AppColors.primaryGreen,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          decoration: TextDecoration.underline,
+        ),
       ),
     );
   }

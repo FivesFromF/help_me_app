@@ -17,10 +17,11 @@ class AuthService {
   static const String _baseUrl =
       'https://nv3jx897x9.execute-api.ap-southeast-1.amazonaws.com';
 
+
   // Google Sign-In ID phải khớp với Google Console project của bạn
   // và với cái đã cấu hình trong Cognito Identity Provider
   static const String _googleClientId =
-      'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+      '310556282701-v8ou06paidmvdh0v6rc7njprchnhgidu.apps.googleusercontent.com';
 
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: _googleClientId,
@@ -64,8 +65,11 @@ class AuthService {
     final Map<String, dynamic> data = jsonDecode(response.body);
 
     // 4. Lưu token + role + profile vào SharedPreferences
+    // QUAN TRỌNG: Backend đã link với Cognito và trả về AccessToken thực thụ
+    final String accessToken = data['accessToken'] ?? idToken;
+    
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('access_token', idToken);
+    await prefs.setString('access_token', accessToken);
     await prefs.setString('role', data['role'] ?? 'citizen');
     await prefs.setString('profile', jsonEncode(data));
 
@@ -125,9 +129,55 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final resData = jsonDecode(response.body);
+      // Update cache
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile', jsonEncode(resData));
+      return resData;
     }
     throw Exception('Không thể hoàn thiện hồ sơ: ${response.body}');
+  }
+
+  // =============================================
+  // Citizen: Cập nhật hồ sơ (Hợp nhất)
+  // =============================================
+
+  static Future<Map<String, dynamic>> updateProfile(
+      Map<String, dynamic> data) async {
+    final token = await getAccessToken();
+    final response = await http.put(
+      Uri.parse('$_baseUrl/write-service/user/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200) {
+      final resData = jsonDecode(response.body);
+      // Update cached profile
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile', jsonEncode(resData));
+      return resData;
+    }
+    throw Exception('Lỗi cập nhật hồ sơ: ${response.body}');
+  }
+
+  static Future<Map<String, dynamic>> getMedicalRecord() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/write-service/user/medical-record'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Lỗi lấy hồ sơ y tế: ${response.body}');
   }
 
   // =============================================
@@ -148,6 +198,12 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final prefs = await SharedPreferences.getInstance();
+      
+      // Save Token and Profile
+      if (data.containsKey('accessToken')) {
+        await prefs.setString('access_token', data['accessToken']);
+      }
+      
       await prefs.setString('role', data['role'] ?? 'staff');
       await prefs.setString('profile', jsonEncode(data));
       return data;

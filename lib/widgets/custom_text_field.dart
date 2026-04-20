@@ -4,7 +4,10 @@ import 'package:help_me_app/app_colors.dart';
 class CustomTextField extends StatelessWidget {
   final String hintText;
   final Widget prefixIcon;
+  final Widget? suffixIcon;
   final bool obscureText;
+  final bool enabled;
+  final int maxLines;
   final TextInputType keyboardType;
   final TextEditingController? controller;
 
@@ -12,7 +15,10 @@ class CustomTextField extends StatelessWidget {
     super.key,
     required this.hintText,
     required this.prefixIcon,
+    this.suffixIcon,
     this.obscureText = false,
+    this.enabled = true,
+    this.maxLines = 1,
     this.keyboardType = TextInputType.text,
     this.controller,
   });
@@ -22,6 +28,8 @@ class CustomTextField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
+      enabled: enabled,
+      maxLines: maxLines,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         hintText: hintText,
@@ -30,6 +38,12 @@ class CustomTextField extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: prefixIcon,
         ),
+        suffixIcon: suffixIcon != null
+            ? Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: suffixIcon,
+              )
+            : null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(

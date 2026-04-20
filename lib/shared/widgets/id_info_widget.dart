@@ -6,10 +6,7 @@ import 'package:help_me_app/widgets/custom_text_field.dart';
 class IdInfoWidget extends StatelessWidget {
   final VoidCallback? onNext;
 
-  const IdInfoWidget({
-    super.key,
-    this.onNext,
-  });
+  const IdInfoWidget({super.key, this.onNext});
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +15,7 @@ class IdInfoWidget extends StatelessWidget {
       children: [
         const Text(
           'Thông tin CCCD/ ID:',
-          style: TextStyle(
-            fontSize: 16,
-            color: AppColors.primaryBlack,
-          ),
+          style: TextStyle(fontSize: 16, color: AppColors.primaryBlack),
         ),
         const SizedBox(height: 20),
         ...List.generate(
@@ -30,8 +24,10 @@ class IdInfoWidget extends StatelessWidget {
             padding: EdgeInsets.only(bottom: 15),
             child: CustomTextField(
               hintText: 'CCCD',
-              prefixIcon: Icon(PhosphorIconsRegular.identificationCard,
-                  color: AppColors.primaryOrange),
+              prefixIcon: Icon(
+                PhosphorIconsRegular.identificationCard,
+                color: AppColors.primaryOrange,
+              ),
             ),
           ),
         ),
@@ -49,7 +45,9 @@ class IdInfoWidget extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryGreen,
                   padding: const EdgeInsets.symmetric(
-                      vertical: 12, horizontal: 16),
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -60,8 +58,9 @@ class IdInfoWidget extends StatelessWidget {
                     const Text(
                       'Tài khoản định danh điện tử',
                       style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Image.asset('assets/vneid_logo.png', height: 30),
@@ -74,8 +73,10 @@ class IdInfoWidget extends StatelessWidget {
                   const Expanded(child: Divider()),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text('Hoặc',
-                        style: TextStyle(color: AppColors.primaryGreen)),
+                    child: Text(
+                      '--- Hoặc ---',
+                      style: TextStyle(color: AppColors.primaryGreen),
+                    ),
                   ),
                   const Expanded(child: Divider()),
                 ],
@@ -86,22 +87,32 @@ class IdInfoWidget extends StatelessWidget {
                 children: [
                   Column(
                     children: [
-                      Icon(PhosphorIconsRegular.qrCode,
-                          size: 40, color: AppColors.primaryGreen),
+                      Icon(
+                        PhosphorIconsRegular.qrCode,
+                        size: 40,
+                        color: AppColors.primaryGreen,
+                      ),
                       const SizedBox(height: 8),
-                      const Text('Quét thẻ\nNFC CCCD',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12)),
+                      const Text(
+                        'Quét thẻ\nNFC CCCD',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                   Column(
                     children: [
-                      Icon(PhosphorIconsRegular.scan,
-                          size: 40, color: AppColors.primaryGreen),
+                      Icon(
+                        PhosphorIconsRegular.scan,
+                        size: 40,
+                        color: AppColors.primaryGreen,
+                      ),
                       const SizedBox(height: 8),
-                      const Text('Quét QR\nCCCD',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12)),
+                      const Text(
+                        'Quét QR\nCCCD',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                 ],

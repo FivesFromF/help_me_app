@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+# Google
+client_secret_310556282701-3irs83ibmfdram1kdpbs5ism1hoeb1h6.apps.googleusercontent.com.json

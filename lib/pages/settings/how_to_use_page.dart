@@ -3,8 +3,8 @@ import 'package:help_me_app/app_colors.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 
-class SupportPage extends StatelessWidget {
-  const SupportPage({super.key});
+class HowToUsePage extends StatelessWidget {
+  const HowToUsePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +25,7 @@ class SupportPage extends StatelessWidget {
           },
         ),
         title: const Text(
-          'Hỗ trợ',
+          'Hướng dẫn sử dụng',
           style: TextStyle(
             color: AppColors.primaryBlack,
             fontSize: 22,
@@ -37,6 +37,7 @@ class SupportPage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Column(
           children: [
+            // Tutorial Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -48,7 +49,7 @@ class SupportPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Câu hỏi thường gặp (FAQ)',
+                    'Danh mục',
                     style: TextStyle(
                       color: AppColors.primaryOrange,
                       fontSize: 18,
@@ -56,23 +57,6 @@ class SupportPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Center(
-                    child: Image.asset(
-                      'assets/FAQ.png',
-                      width: 180,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Danh mục',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.primaryBlack,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   const SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -87,31 +71,28 @@ class SupportPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const _FaqItem(
-                    question:
-                        'Nhận diện khuôn mặt có hoạt động được khi nạn nhân bị thương ở mặt không?',
-                    answer:
-                        'Trong trường hợp khuôn mặt bị che khuất hoặc biến dạng do va đập, bạn có thể chuyển sang quét mã QR trên mũ bảo hiểm, móc khóa hoặc chạm thẻ NFC đeo trên người nạn nhân. Đây là lý do HelpMe cung cấp ba phương thức độc lập để đảm bảo luôn có ít nhất một phương thức hoạt động được.',
-                  ),
-                  const Divider(height: 1, color: Color(0xFFF0F0F0)),
-                  const _FaqItem(
-                    question:
-                        'Vòng tay / thẻ NFC có hoạt động khi điện thoại hết pin không?',
-                    answer:
-                        'Có, vòng tay và thẻ NFC của HelpMe là các thiết bị thụ động (passive), không cần pin hay nguồn điện. Chúng hoạt động độc lập nên vẫn có thể quét được ngay cả khi điện thoại của nạn nhân đã hết pin.',
-                  ),
-                  const Divider(height: 1, color: Color(0xFFF0F0F0)),
-                  const _FaqItem(
-                    question:
-                        'Thông tin nào hiển thị cho người qua đường và thông tin nào chỉ dành cho nhân viên y tế?',
-                    answer:
-                        'Người qua đường chỉ có thể xem các thông tin liên lạc khẩn cấp (tên, số điện thoại người thân). Các thông tin y tế chi tiết như nhóm máu, tiền sử bệnh lý chỉ hiển thị cho nhân viên y tế đã được xác thực danh tính trên hệ thống.',
+                  const SizedBox(height: 24),
+                  // Tutorial Carousel
+                  SizedBox(
+                    height: 480,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: const [
+                        _TutorialCard(
+                          title: 'Hướng dẫn quét khuôn mặt đúng cách',
+                        ),
+                        SizedBox(width: 16),
+                        _TutorialCard(
+                          title: 'Cách thiết lập thông tin khẩn cấp',
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
+            // Support Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -149,6 +130,7 @@ class SupportPage extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -188,45 +170,64 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _FaqItem extends StatelessWidget {
-  const _FaqItem({required this.question, required this.answer});
-  final String question;
-  final String answer;
+class _TutorialCard extends StatelessWidget {
+  const _TutorialCard({required this.title});
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(vertical: 4),
-        childrenPadding: const EdgeInsets.only(bottom: 12),
-        iconColor: AppColors.primaryBlack,
-        collapsedIconColor: AppColors.primaryBlack,
-        title: Text(
-          question,
-          style: const TextStyle(
-            fontSize: 16,
-            height: 1.4,
-            color: AppColors.primaryBlack,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+    return SizedBox(
+      width: 280,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              answer,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.primaryBlack,
-                height: 1.5,
+          // Checkerboard Placeholder Image
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEEEEE),
+                borderRadius: BorderRadius.circular(20),
               ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: CustomPaint(
+                  painter: _CheckerboardPainter(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryBlack,
+              height: 1.2,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _CheckerboardPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = const Color(0xFFE0E0E0);
+    const boxSize = 20.0;
+    for (double i = 0; i < size.width; i += boxSize) {
+      for (double j = 0; j < size.height; j += boxSize) {
+        if ((i / boxSize).floor() % 2 == (j / boxSize).floor() % 2) {
+          canvas.drawRect(Rect.fromLTWH(i, j, boxSize, boxSize), paint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _SupportTile extends StatelessWidget {
@@ -273,4 +274,3 @@ class _SupportTile extends StatelessWidget {
     );
   }
 }
-

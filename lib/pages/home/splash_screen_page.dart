@@ -44,27 +44,52 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Decorative Elements
+          // Teal Decorative Arcs
           Positioned(
-            top: -200,
-            left: -200,
+            top: -240,
+            left: -120,
             child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withOpacity(0.1),
+              width: 480,
+              height: 480,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8F9F5), // Light Mint Background
                 shape: BoxShape.circle,
               ),
             ),
           ),
           Positioned(
-            bottom: -150,
-            right: -150,
+            top: -180,
+            left: -80,
             child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                color: AppColors.primaryOrange.withOpacity(0.05),
+              width: 320,
+              height: 320,
+              decoration: const BoxDecoration(
+                color: Color(0xFFB9F2E2), // Mint Arc
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          Positioned(
+            bottom: -280,
+            right: -140,
+            child: Container(
+              width: 560,
+              height: 560,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8F9F5), // Light Mint Background
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -180,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: const BoxDecoration(
+                color: Color(0xFFB9F2E2), // Mint Arc
                 shape: BoxShape.circle,
               ),
             ),
@@ -78,60 +103,34 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
                 Hero(
                   tag: 'logo',
                   child: SvgPicture.asset(
-                    'assets/logo.svg', 
-                    width: 160, 
-                    height: 160
+                    'assets/logo.svg',
+                    width: 180,
+                    height: 180,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 RichText(
+                  textAlign: TextAlign.center,
                   text: const TextSpan(
                     style: TextStyle(
                       fontSize: 32,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontFamily: 'Inter',
-                      letterSpacing: -1,
+                      letterSpacing: -0.5,
                     ),
                     children: [
                       TextSpan(
-                        text: 'Help',
-                        style: TextStyle(color: AppColors.primaryBlack),
+                        text: 'Sinh mệnh ',
+                        style: TextStyle(color: AppColors.primaryGreen),
                       ),
                       TextSpan(
-                        text: 'Me',
-                        style: TextStyle(color: AppColors.primaryGreen),
+                        text: 'Khẩn cấp',
+                        style: TextStyle(color: AppColors.primaryOrange),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'ỨNG DỤNG HỖ TRỢ Y TẾ KHẨN CẤP',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
               ],
-            ),
-          ),
-          
-          // Bottom Loading Indicator
-          const Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: SizedBox(
-                width: 30,
-                height: 30,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
-                ),
-              ),
             ),
           ),
         ],
@@ -139,3 +138,4 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
     );
   }
 }
+
