@@ -11,6 +11,8 @@ class CitizenProfile {
   final String gender;
   final String address;
   final String cccdNumber;
+  final bool isProfileUpdated;
+  final bool isVerified;
   final List<ContactInfo> emergencyContacts;
 
   CitizenProfile({
@@ -24,6 +26,8 @@ class CitizenProfile {
     this.gender = '',
     this.address = '',
     this.cccdNumber = '',
+    this.isProfileUpdated = false,
+    this.isVerified = false,
     this.emergencyContacts = const [],
   });
 
@@ -39,6 +43,8 @@ class CitizenProfile {
       gender: json['gender'] ?? '',
       address: json['address'] ?? '',
       cccdNumber: json['cccdNumber'] ?? '',
+      isProfileUpdated: json['isProfileUpdated'] ?? false,
+      isVerified: json['isVerified'] ?? false,
       emergencyContacts: (json['emergencyContacts'] as List?)
               ?.map((e) => ContactInfo.fromJson(e))
               .toList() ??
@@ -58,6 +64,8 @@ class CitizenProfile {
       'gender': gender,
       'address': address,
       'cccdNumber': cccdNumber,
+      'isProfileUpdated': isProfileUpdated,
+      'isVerified': isVerified,
       'emergencyContacts': emergencyContacts.map((e) => e.toJson()).toList(),
     };
   }

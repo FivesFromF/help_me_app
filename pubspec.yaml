@@ -14,11 +14,12 @@ dependencies:
   go_router: ^14.7.2
   http: ^1.1.0
 
-  # Google Sign-In
-  google_sign_in: ^6.2.1
-
-  # Shared Preferences (tạm thời lưu token)
+  # Local Storage
   shared_preferences: ^2.3.2
+
+  # AWS Amplify
+  amplify_flutter: ^2.0.0
+  amplify_auth_cognito: ^2.0.0
 
 dev_dependencies:
   flutter_test:

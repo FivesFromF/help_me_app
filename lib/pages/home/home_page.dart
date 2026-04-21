@@ -18,11 +18,24 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = [
     const HomeDashboard(),
-    const ProfileDashboardPage(),
+    const HomeDashboard(),
     const Center(child: Text('Lịch sử')),
     const Center(child: Text('Tin tức')),
     const SettingsPage(),
   ];
+
+  void _onNavItemSelected(int index) {
+    if (index == 1) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ProfileDashboardPage()),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +50,7 @@ class _HomePageState extends State<HomePage> {
             bottom: 30,
             child: _CustomFloatingNavBar(
               selectedIndex: _selectedIndex,
-              onItemSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
+              onItemSelected: _onNavItemSelected,
             ),
           ),
         ],
@@ -133,6 +142,7 @@ class HomeDashboard extends StatefulWidget {
 class _HomeDashboardState extends State<HomeDashboard> {
   String _displayName = '...';
   bool _isVerified = false;
+  bool _isProfileUpdated = false;
 
   @override
   void initState() {
@@ -143,9 +153,11 @@ class _HomeDashboardState extends State<HomeDashboard> {
   Future<void> _loadProfile() async {
     final profile = await AuthService.getCachedProfile();
     if (profile != null && profile['citizen'] != null) {
+      final citizen = profile['citizen'];
       setState(() {
-        _displayName = (profile['citizen']['fullName'] ?? 'Người dùng').toUpperCase();
-        _isVerified = profile['citizen']['cccdNumber'] != null;
+        _displayName = (citizen['fullName'] ?? 'Người dùng').toUpperCase();
+        _isVerified = citizen['isVerified'] ?? false;
+        _isProfileUpdated = citizen['isProfileUpdated'] ?? false;
       });
     }
   }
@@ -195,13 +207,15 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           Row(
                             children: [
                               _buildStatusChip(
-                                PhosphorIconsRegular.shieldSlash,
-                                'Chưa xác thực',
+                                _isVerified ? PhosphorIconsFill.shieldCheck : PhosphorIconsRegular.shieldSlash,
+                                _isVerified ? 'Đã xác thực' : 'Chưa xác thực',
+                                isPositive: _isVerified,
                               ),
                               const SizedBox(width: 8),
                               _buildStatusChip(
-                                PhosphorIconsRegular.folderSimple,
-                                'Chưa cập nhật hồ sơ',
+                                _isProfileUpdated ? PhosphorIconsFill.folderSimple : PhosphorIconsRegular.folderSimple,
+                                _isProfileUpdated ? 'Đã cập nhật hồ sơ' : 'Chưa cập nhật hồ sơ',
+                                isPositive: _isProfileUpdated,
                               ),
                             ],
                           ),
@@ -394,7 +408,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildStatusChip(IconData icon, String label) {
+  Widget _buildStatusChip(IconData icon, String label, {bool isPositive = false}) {
+    final color = isPositive ? AppColors.primaryGreen : AppColors.primaryOrange;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -404,7 +419,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: AppColors.primaryOrange),
+          Icon(icon, size: 18, color: color),
           const SizedBox(width: 6),
           Text(
             label,

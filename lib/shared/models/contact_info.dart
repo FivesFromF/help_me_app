@@ -2,12 +2,14 @@ class ContactInfo {
   final String name;
   final String relationship;
   final String phone;
+  final String backupPhone;
   final String email;
 
   ContactInfo({
     required this.name,
     this.relationship = '',
     this.phone = '',
+    this.backupPhone = '',
     this.email = '',
   });
 
@@ -16,6 +18,7 @@ class ContactInfo {
       name: json['name'] ?? '',
       relationship: json['relationship'] ?? '',
       phone: json['phone'] ?? '',
+      backupPhone: json['backupPhone'] ?? json['backup_phone'] ?? json['email'] ?? '',
       email: json['email'] ?? '',
     );
   }
@@ -25,6 +28,7 @@ class ContactInfo {
       'name': name,
       'relationship': relationship,
       'phone': phone,
+      'backupPhone': backupPhone,
       'email': email,
     };
   }

@@ -21,9 +21,10 @@ class SettingsPage extends StatelessWidget {
             FutureBuilder<Map<String, dynamic>?>(
               future: AuthService.getCachedProfile(),
               builder: (context, snapshot) {
-                final profile = snapshot.data;
-                final fullName = profile?['fullName'] ?? 'Họ và tên';
-                final phone = profile?['phone'] ?? '(+84) 902044300';
+                final citizen = snapshot.data?['citizen'];
+                final fullName = citizen?['fullName'] ?? 'Họ và tên';
+                final phone = citizen?['phone'] ?? '(+84) 902044300';
+                final isVerified = citizen?['isVerified'] ?? false;
 
                 return Column(
                   children: [
@@ -70,22 +71,26 @@ class SettingsPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isVerified ? AppColors.primaryGreen : AppColors.primaryOrange,
+                          width: 1.5,
+                        ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            PhosphorIconsFill.shieldSlash,
+                            isVerified ? PhosphorIconsFill.sealCheck : PhosphorIconsRegular.shieldSlash,
                             size: 16,
-                            color: AppColors.primaryOrange,
+                            color: isVerified ? AppColors.primaryGreen : AppColors.primaryOrange,
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(
-                            'Chưa xác thực',
+                            isVerified ? 'Đã xác thực' : 'Chưa xác thực',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryBlack,
+                              color: isVerified ? AppColors.primaryGreen : AppColors.primaryBlack,
                             ),
                           ),
                         ],

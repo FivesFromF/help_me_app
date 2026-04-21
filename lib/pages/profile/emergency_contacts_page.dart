@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
+import 'package:help_me_app/pages/profile/medical_record_page.dart';
 import 'package:help_me_app/shared/services/auth_service.dart';
 import 'package:help_me_app/shared/models/contact_info.dart';
 import 'package:help_me_app/shared/models/citizen_profile.dart';
 
 class EmergencyContactsPage extends StatefulWidget {
-  const EmergencyContactsPage({super.key});
+  const EmergencyContactsPage({super.key, this.showScaffold = true});
+  final bool showScaffold;
 
   @override
   State<EmergencyContactsPage> createState() => _EmergencyContactsPageState();
@@ -24,6 +26,10 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
 
   Future<void> _loadContacts() async {
     try {
+      // 1. Tải profile mới nhất từ Read-Service để đảm bảo đồng bộ
+      await AuthService.fetchAndCacheProfile();
+      
+      // 2. Đọc từ cache đã được cập nhật
       final profile = await AuthService.getCachedProfile();
       if (profile != null && profile['citizen'] != null) {
         final c = CitizenProfile.fromJson(profile['citizen']);
@@ -64,6 +70,8 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
     final nameController = TextEditingController(text: contact?.name);
     final relationController = TextEditingController(text: contact?.relationship);
     final phoneController = TextEditingController(text: contact?.phone);
+    final backupPhoneController =
+        TextEditingController(text: contact?.backupPhone);
     final emailController = TextEditingController(text: contact?.email);
 
     showModalBottomSheet(
@@ -92,6 +100,8 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
               _buildField('Họ và tên', nameController, PhosphorIconsRegular.user),
               _buildField('Mối quan hệ', relationController, PhosphorIconsRegular.usersThree),
               _buildField('Số điện thoại', phoneController, PhosphorIconsRegular.phone),
+              _buildField('Số điện thoại dự phòng', backupPhoneController,
+                  PhosphorIconsRegular.phonePlus),
               _buildField('Email', emailController, PhosphorIconsRegular.envelope),
               const SizedBox(height: 24),
               SizedBox(
@@ -103,6 +113,7 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
                       name: nameController.text,
                       relationship: relationController.text,
                       phone: phoneController.text,
+                      backupPhone: backupPhoneController.text,
                       email: emailController.text,
                     );
                     setState(() {
@@ -132,7 +143,7 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
 
   Widget _buildField(String label, TextEditingController controller, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.bottom(16),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -155,30 +166,134 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.showScaffold) {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _contacts.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+                        itemCount: _contacts.length,
+                        itemBuilder: (context, index) {
+                          final c = _contacts[index];
+                          return _buildContactCard(c, index);
+                        },
+                      ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              onPressed: _showAddEditDialog,
+              backgroundColor: const Color(0xFF10B981),
+              child: const Icon(
+                PhosphorIconsRegular.plus,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF0F0F0),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.primaryOrange,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(PhosphorIconsRegular.caretLeft, color: AppColors.primaryBlack),
+          icon: const Icon(PhosphorIconsRegular.arrowLeft, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Thông tin người thân', style: TextStyle(color: AppColors.primaryBlack, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Hồ sơ người dùng',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _contacts.isEmpty 
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.all(24),
-              itemCount: _contacts.length,
-              itemBuilder: (context, index) {
-                final c = _contacts[index];
-                return _buildContactCard(c, index);
+      body: Column(
+        children: [
+          _buildTopTabs(context),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _contacts.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+                        itemCount: _contacts.length,
+                        itemBuilder: (context, index) {
+                          final c = _contacts[index];
+                          return _buildContactCard(c, index);
+                        },
+                      ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddEditDialog,
+        backgroundColor: const Color(0xFF10B981),
+        child: const Icon(PhosphorIconsRegular.plus, color: Colors.white, size: 32),
+      ),
+    );
+  }
+
+  Widget _buildTopTabs(BuildContext context) {
+    return Container(
+      color: const Color(0xFFEDE1D3),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const MedicalRecordPage()),
+                );
               },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Hồ sơ y tế',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.primaryBlack,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
             ),
-      bottomNavigationBar: _buildBottomBtn(),
+          ),
+          Expanded(
+            child: Column(
+              children: const [
+                SizedBox(height: 12),
+                Text(
+                  'Thông tin người thân',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.primaryOrange,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Divider(
+                  thickness: 3,
+                  height: 3,
+                  color: AppColors.primaryOrange,
+                  indent: 20,
+                  endIndent: 20,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -189,7 +304,10 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
         children: [
           Icon(PhosphorIconsRegular.usersThree, size: 80, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          const Text('Chưa có thông tin người thân', style: TextStyle(color: Colors.grey)),
+          const Text(
+            'Chưa có thông tin người thân',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
+          ),
         ],
       ),
     );
@@ -197,83 +315,123 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
 
   Widget _buildContactCard(ContactInfo c, int index) {
     return Container(
-      margin: const EdgeInsets.bottom(16),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDADADA)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: const BoxDecoration(color: AppColors.secondaryOrange, shape: BoxShape.circle),
-                child: const Icon(PhosphorIconsRegular.user, color: AppColors.primaryOrange),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(c.relationship, style: const TextStyle(color: AppColors.primaryOrange, fontSize: 13, fontWeight: FontWeight.w600)),
-                  ],
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF10B981),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '#${index + 1}. ${c.name}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(PhosphorIconsRegular.pencilSimple, size: 20, color: Colors.grey),
-                onPressed: () => _showAddEditDialog(c, index),
-              ),
-              IconButton(
-                icon: const Icon(PhosphorIconsRegular.trash, size: 20, color: Colors.redAccent),
-                onPressed: () {
-                   setState(() => _contacts.removeAt(index));
-                   _save();
-                },
-              ),
-            ],
+                InkWell(
+                  onTap: () => _showAddEditDialog(c, index),
+                  child: const Icon(
+                    PhosphorIconsRegular.pencilSimple,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const Divider(height: 24),
-          _buildInfoRow(PhosphorIconsRegular.phone, c.phone),
-          const SizedBox(height: 8),
-          _buildInfoRow(PhosphorIconsRegular.envelope, c.email),
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+            ),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Column(
+              children: [
+                _buildDetailLine('Quan hệ với người dùng', c.relationship, withCaret: true),
+                _buildDetailLine('Số điện thoại', c.phone, withEdit: true),
+                _buildDetailLine(
+                  'Số điện thoại dự phòng',
+                  c.backupPhone.isNotEmpty ? c.backupPhone : 'Không có',
+                  withEdit: true,
+                ),
+                _buildDetailLine('Nơi ở', c.email.isNotEmpty ? c.email : 'Không có', withEdit: true, isLast: true),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() => _contacts.removeAt(index));
+                      _save();
+                    },
+                    icon: const Icon(PhosphorIconsRegular.trash, size: 16, color: Colors.redAccent),
+                    label: const Text('Xóa', style: TextStyle(color: Colors.redAccent)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey),
-        const SizedBox(width: 8),
-        Text(text.isNotEmpty ? text : 'Chưa cập nhật', style: const TextStyle(color: Color(0xFF666666), fontSize: 14)),
-      ],
-    );
-  }
-
-  Widget _buildBottomBtn() {
+  Widget _buildDetailLine(
+    String label,
+    String value, {
+    bool withEdit = false,
+    bool withCaret = false,
+    bool isLast = false,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFF5F5F5)))),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton.icon(
-          onPressed: () => _showAddEditDialog(),
-          icon: const Icon(PhosphorIconsRegular.plus, size: 20),
-          label: const Text('Thêm người thân', style: TextStyle(fontWeight: FontWeight.bold)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryOrange,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFEDEDED))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(color: Color(0xFF8A8A8A), fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: AppColors.primaryBlack,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          if (withCaret)
+            const Icon(PhosphorIconsRegular.caretDown, size: 18, color: Color(0xFFB0B0B0)),
+          if (withEdit)
+            const Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: Color(0xFFC0C0C0)),
+        ],
       ),
     );
   }
