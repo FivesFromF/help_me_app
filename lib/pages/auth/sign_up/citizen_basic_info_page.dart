@@ -18,7 +18,7 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  
+
   String? _selectedGender;
   DateTime? _selectedDate;
   bool _isLoading = false;
@@ -72,7 +72,8 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
-        _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        _dobController.text =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       });
     }
   }
@@ -101,12 +102,13 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
         'dateOfBirth': _dobController.text.trim(),
         'gender': _selectedGender,
         'address': _addressController.text.trim(),
+        'firstDeclareProfile': true,
       };
 
       await AuthService.completeCitizenProfile(data);
 
       if (mounted) {
-        context.go('/home');
+        context.go('/');
       }
     } catch (e) {
       if (mounted) {
@@ -165,21 +167,27 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
               style: TextStyle(fontSize: 14, color: Color(0xFF888888)),
             ),
             const SizedBox(height: 32),
-            
+
             _buildFieldHeader('Họ và tên'),
             CustomTextField(
               controller: _fullNameController,
               hintText: 'Nhập họ và tên thật của bạn',
-              prefixIcon: const Icon(PhosphorIconsRegular.user, color: AppColors.primaryOrange),
+              prefixIcon: const Icon(
+                PhosphorIconsRegular.user,
+                color: AppColors.primaryOrange,
+              ),
             ),
             const SizedBox(height: 20),
-            
+
             _buildFieldHeader('Email (Cố định)'),
             CustomTextField(
               controller: _emailController,
               hintText: 'Email',
               enabled: false,
-              prefixIcon: const Icon(PhosphorIconsRegular.envelope, color: Color(0xFFBBBBBB)),
+              prefixIcon: const Icon(
+                PhosphorIconsRegular.envelope,
+                color: Color(0xFFBBBBBB),
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -188,10 +196,13 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
               controller: _phoneController,
               hintText: 'Nhập số điện thoại của bạn',
               keyboardType: TextInputType.phone,
-              prefixIcon: const Icon(PhosphorIconsRegular.phone, color: AppColors.primaryOrange),
+              prefixIcon: const Icon(
+                PhosphorIconsRegular.phone,
+                color: AppColors.primaryOrange,
+              ),
             ),
             const SizedBox(height: 20),
-            
+
             Row(
               children: [
                 Expanded(
@@ -205,7 +216,10 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
                           child: CustomTextField(
                             controller: _dobController,
                             hintText: 'Chọn ngày',
-                            prefixIcon: const Icon(PhosphorIconsRegular.calendar, color: AppColors.primaryOrange),
+                            prefixIcon: const Icon(
+                              PhosphorIconsRegular.calendar,
+                              color: AppColors.primaryOrange,
+                            ),
                           ),
                         ),
                       ),
@@ -225,17 +239,20 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
               ],
             ),
             const SizedBox(height: 20),
-            
+
             _buildFieldHeader('Nơi ở hiện tại'),
             CustomTextField(
               controller: _addressController,
               hintText: 'Nhập địa chỉ của bạn',
-              prefixIcon: const Icon(PhosphorIconsRegular.mapPin, color: AppColors.primaryOrange),
+              prefixIcon: const Icon(
+                PhosphorIconsRegular.mapPin,
+                color: AppColors.primaryOrange,
+              ),
               maxLines: 2,
             ),
-            
+
             const SizedBox(height: 48),
-            
+
             // Confirm Button
             SizedBox(
               width: double.infinity,
@@ -251,10 +268,16 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      )
                     : const Text(
-                        'Tiếp tục vào trang chủ',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                        'Xác nhận',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
               ),
             ),
@@ -289,16 +312,28 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
-          value: _selectedGender,
+          initialValue: _selectedGender,
           decoration: const InputDecoration(
             border: InputBorder.none,
-            icon: Icon(PhosphorIconsRegular.genderIntersex, color: AppColors.primaryOrange),
+            icon: Icon(
+              PhosphorIconsRegular.genderIntersex,
+              color: AppColors.primaryOrange,
+            ),
           ),
-          hint: const Text('Chọn', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 14)),
+          hint: const Text(
+            'Chọn',
+            style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 14),
+          ),
           items: ['Nam', 'Nữ', 'Khác'].map((String value) {
             return DropdownMenuItem<String>(
               value: value,
-              child: Text(value, style: const TextStyle(color: AppColors.primaryBlack, fontSize: 14)),
+              child: Text(
+                value,
+                style: const TextStyle(
+                  color: AppColors.primaryBlack,
+                  fontSize: 14,
+                ),
+              ),
             );
           }).toList(),
           onChanged: (newValue) {

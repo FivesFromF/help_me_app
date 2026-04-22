@@ -13,6 +13,8 @@ class CitizenProfile {
   final String cccdNumber;
   final bool isProfileUpdated;
   final bool isVerified;
+  final bool firstDeclareProfile;
+  final bool consentRegulation;
   final List<ContactInfo> emergencyContacts;
 
   CitizenProfile({
@@ -28,6 +30,8 @@ class CitizenProfile {
     this.cccdNumber = '',
     this.isProfileUpdated = false,
     this.isVerified = false,
+    this.firstDeclareProfile = false,
+    this.consentRegulation = false,
     this.emergencyContacts = const [],
   });
 
@@ -43,8 +47,10 @@ class CitizenProfile {
       gender: json['gender'] ?? '',
       address: json['address'] ?? '',
       cccdNumber: json['cccdNumber'] ?? '',
-      isProfileUpdated: json['isProfileUpdated'] ?? false,
-      isVerified: json['isVerified'] ?? false,
+      isProfileUpdated: json['isProfileUpdated'] ?? json['is_profile_updated'] ?? false,
+      isVerified: json['isVerified'] ?? json['is_verified'] ?? false,
+      firstDeclareProfile: json['firstDeclareProfile'] ?? json['first_declare_profile'] ?? false,
+      consentRegulation: json['consentRegulation'] ?? json['consent_regulation'] ?? false,
       emergencyContacts: (json['emergencyContacts'] as List?)
               ?.map((e) => ContactInfo.fromJson(e))
               .toList() ??
@@ -66,6 +72,8 @@ class CitizenProfile {
       'cccdNumber': cccdNumber,
       'isProfileUpdated': isProfileUpdated,
       'isVerified': isVerified,
+      'firstDeclareProfile': firstDeclareProfile,
+      'consentRegulation': consentRegulation,
       'emergencyContacts': emergencyContacts.map((e) => e.toJson()).toList(),
     };
   }

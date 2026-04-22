@@ -9,7 +9,8 @@ class CitizenSignUpWizardPage extends StatefulWidget {
   const CitizenSignUpWizardPage({super.key});
 
   @override
-  State<CitizenSignUpWizardPage> createState() => _CitizenSignUpWizardPageState();
+  State<CitizenSignUpWizardPage> createState() =>
+      _CitizenSignUpWizardPageState();
 }
 
 class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
@@ -55,9 +56,9 @@ class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
   Future<void> _handleCompleteProfile() async {
     final fullName = _fullNameController.text.trim();
     if (fullName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập họ và tên')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập họ và tên')));
       return;
     }
 
@@ -70,18 +71,19 @@ class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
         'gender': _genderController.text.trim(),
         'address': _addressController.text.trim(),
         'cccdNumber': _cccdController.text.trim(),
+        'firstDeclareProfile': true,
       };
 
       await AuthService.completeCitizenProfile(data);
-      
+
       if (mounted) {
-        context.go('/home');
+        context.go('/');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     } finally {
       if (mounted) {
@@ -107,19 +109,28 @@ class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
         CustomTextField(
           controller: _fullNameController,
           hintText: 'Họ và tên',
-          prefixIcon: const Icon(PhosphorIconsRegular.user, color: AppColors.primaryOrange),
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.user,
+            color: AppColors.primaryOrange,
+          ),
         ),
         const SizedBox(height: 15),
         CustomTextField(
           controller: _dobController,
           hintText: 'Ngày sinh (YYYY-MM-DD)',
-          prefixIcon: const Icon(PhosphorIconsRegular.calendar, color: AppColors.primaryOrange),
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.calendar,
+            color: AppColors.primaryOrange,
+          ),
         ),
         const SizedBox(height: 15),
         CustomTextField(
           controller: _genderController,
           hintText: 'Giới tính',
-          prefixIcon: const Icon(PhosphorIconsRegular.genderIntersex, color: AppColors.primaryOrange),
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.genderIntersex,
+            color: AppColors.primaryOrange,
+          ),
         ),
         const SizedBox(height: 40),
         _buildActionButton('Tiếp theo', () => setState(() => _currentStep = 1)),
@@ -144,20 +155,29 @@ class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
         CustomTextField(
           controller: _cccdController,
           hintText: 'Số CCCD / CMND',
-          prefixIcon: const Icon(PhosphorIconsRegular.identificationCard, color: AppColors.primaryOrange),
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.identificationCard,
+            color: AppColors.primaryOrange,
+          ),
         ),
         const SizedBox(height: 15),
         CustomTextField(
           controller: _addressController,
           hintText: 'Địa chỉ thường trú',
-          prefixIcon: const Icon(PhosphorIconsRegular.mapPin, color: AppColors.primaryOrange),
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.mapPin,
+            color: AppColors.primaryOrange,
+          ),
         ),
         const SizedBox(height: 15),
         CustomTextField(
           controller: _phoneController,
           hintText: 'Số điện thoại liên lạc',
           keyboardType: TextInputType.phone,
-          prefixIcon: const Icon(PhosphorIconsRegular.phone, color: AppColors.primaryOrange),
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.phone,
+            color: AppColors.primaryOrange,
+          ),
         ),
         const SizedBox(height: 40),
         _buildActionButton('Hoàn tất hồ sơ', _handleCompleteProfile),
@@ -173,7 +193,9 @@ class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
         onPressed: _isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryOrange,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
           elevation: 0,
         ),
         child: _isLoading
@@ -199,7 +221,10 @@ class _CitizenSignUpWizardPageState extends State<CitizenSignUpWizardPage> {
         elevation: 0,
         title: const Text(
           'Hoàn thiện hồ sơ',
-          style: TextStyle(color: AppColors.primaryBlack, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppColors.primaryBlack,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.primaryBlack),

@@ -29,10 +29,45 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
     
     if (mounted) {
       if (loggedIn) {
-        // Nếu đã login, vào thẳng Home
-        context.go('/home');
+        try {
+          // Lấy profile mới nhất để kiểm tra các flag trạng thái
+          print('SplashScreen: Fetching latest profile...');
+          final res = await AuthService.fetchAndCacheProfile();
+          final citizen = res['profile'];
+          
+          print('SplashScreen: Profile data: $citizen');
+
+          if (citizen != null) {
+            final bool firstDeclare = citizen['firstDeclareProfile'] ??
+                citizen['first_declare_profile'] ??
+                false;
+            final bool consent = citizen['consentRegulation'] ??
+                citizen['consent_regulation'] ??
+                false;
+
+            print('SplashScreen: firstDeclare=$firstDeclare, consent=$consent');
+
+            if (!firstDeclare) {
+              print('SplashScreen: Redirecting to /auth/sign-up');
+              context.go('/auth/sign-up');
+            } else if (!consent) {
+              print('SplashScreen: Redirecting to /privacy');
+              context.go('/privacy?consent=true');
+            } else {
+              print('SplashScreen: Redirecting to /home');
+              context.go('/home');
+            }
+          } else {
+            print('SplashScreen: Profile is null, redirecting to /sign-in');
+            context.go('/sign-in');
+          }
+        } catch (e) {
+          print('SplashScreen: Error fetching profile: $e');
+          // In case of error, better to sign in again than bypass
+          context.go('/sign-in');
+        }
       } else {
-        // Chưa login, ra màn hình Sign In
+        print('SplashScreen: Not logged in, redirecting to /sign-in');
         context.go('/sign-in');
       }
     }

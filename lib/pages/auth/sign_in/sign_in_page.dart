@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -25,16 +24,33 @@ class _SignInPageState extends State<SignInPage> {
         // Nếu fullName vẫn là email hoặc rỗng (do tự động provision)
         // Hoặc dựa vào một flag trong profile trả về
         final citizen = res['citizen'];
-        if (citizen != null &&
-            (_isEmpty(citizen['fullName']) ||
-                _isEmpty(citizen['dateOfBirth']) ||
-                _isEmpty(citizen['gender']))) {
-          // Lần đầu đăng nhập -> Yêu cầu hoàn thiện thông tin cơ bản
-          context.go('/auth/sign-up');
-        } else {
-          // Đã có profile -> Vào Home luôn
-          context.go('/home');
-        }
+          print('SignInPage: Profile data: $citizen');
+          if (citizen != null) {
+            final bool firstDeclare =
+                citizen['firstDeclareProfile'] ??
+                citizen['first_declare_profile'] ??
+                false;
+            final bool consent =
+                citizen['consentRegulation'] ??
+                citizen['consent_regulation'] ??
+                false;
+
+            print('SignInPage: firstDeclare=$firstDeclare, consent=$consent');
+
+            if (!firstDeclare) {
+              print('SignInPage: Redirecting to /auth/sign-up');
+              context.go('/auth/sign-up');
+            } else if (!consent) {
+              print('SignInPage: Redirecting to /privacy');
+              context.go('/privacy?consent=true');
+            } else {
+              print('SignInPage: Redirecting to /home');
+              context.go('/home');
+            }
+          } else {
+            print('SignInPage: Citizen is null, redirecting to sign-up');
+            context.go('/auth/sign-up');
+          }
       }
     } catch (e) {
       if (mounted) {
@@ -134,7 +150,7 @@ class _SignInPageState extends State<SignInPage> {
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),

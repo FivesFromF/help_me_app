@@ -3,6 +3,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/shared/services/auth_service.dart';
+import 'package:help_me_app/pages/profile/nfc_management_page.dart';
+import 'package:help_me_app/pages/profile/qr_management_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -72,7 +74,9 @@ class SettingsPage extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isVerified ? AppColors.primaryGreen : AppColors.primaryOrange,
+                          color: isVerified
+                              ? AppColors.primaryGreen
+                              : AppColors.primaryOrange,
                           width: 1.5,
                         ),
                       ),
@@ -80,9 +84,13 @@ class SettingsPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isVerified ? PhosphorIconsFill.sealCheck : PhosphorIconsRegular.shieldSlash,
+                            isVerified
+                                ? PhosphorIconsFill.sealCheck
+                                : PhosphorIconsRegular.shieldSlash,
                             size: 16,
-                            color: isVerified ? AppColors.primaryGreen : AppColors.primaryOrange,
+                            color: isVerified
+                                ? AppColors.primaryGreen
+                                : AppColors.primaryOrange,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -90,7 +98,9 @@ class SettingsPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isVerified ? AppColors.primaryGreen : AppColors.primaryBlack,
+                              color: isVerified
+                                  ? AppColors.primaryGreen
+                                  : AppColors.primaryBlack,
                             ),
                           ),
                         ],
@@ -163,6 +173,37 @@ class SettingsPage extends StatelessWidget {
                     ],
                   ),
                   onTap: () {},
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Device Management Section
+            _buildSection(
+              title: 'Quản lý định danh thiết bị',
+              items: [
+                _buildSettingItem(
+                  icon: PhosphorIconsRegular.rssSimple,
+                  label: 'Quản lý thẻ NFC',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NfcManagementPage(),
+                      ),
+                    );
+                  },
+                ),
+                _buildSettingItem(
+                  icon: PhosphorIconsRegular.qrCode,
+                  label: 'Quản lý mã QR',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const QRManagementPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

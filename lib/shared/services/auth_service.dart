@@ -39,19 +39,22 @@ class AuthService {
         throw Exception('Đăng nhập không thành công');
       }
 
-      // 2. Lấy Access Token thực thụ từ Cognito
+      // 2. Lấy Token từ Cognito
       final session =
           await Amplify.Auth.fetchAuthSession() as CognitoAuthSession;
       final accessToken = session.userPoolTokensResult.value.accessToken.raw;
+      final idToken = session.userPoolTokensResult.value.idToken.raw;
 
-      // 3. Gửi token lên backend để đồng bộ DB và lấy Citizen Profile
+      // 3. Gửi idToken lên backend để đồng bộ DB và lấy Citizen Profile
+      // Chúng ta gửi idToken vào trường 'accessToken' của payload 
+      // vì backend dùng nó để parse Email và Name.
       final response = await http.post(
         Uri.parse('$_baseUrl/write-service/signin'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
         },
-        body: jsonEncode({'accessToken': accessToken}),
+        body: jsonEncode({'accessToken': idToken}),
       );
 
       if (response.statusCode != 200) {
@@ -137,6 +140,7 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final resData = jsonDecode(response.body);
+      print('AuthService: Profile completion response: $resData');
       // Preserve cached envelope shape: { citizen: {...}, role, accessToken }
       final prefs = await SharedPreferences.getInstance();
       final currentRaw = prefs.getString('profile');
@@ -145,7 +149,7 @@ class AuthService {
           : <String, dynamic>{};
       final merged = <String, dynamic>{
         ...current,
-        'citizen': resData['profile'] ?? current['citizen'],
+        'citizen': (resData['profile'] ?? current['citizen'] ?? {})..['firstDeclareProfile'] = true,
       };
       await prefs.setString('profile', jsonEncode(merged));
       return resData;
@@ -186,6 +190,10 @@ class AuthService {
       return resData;
     }
     throw Exception('Lỗi cập nhật hồ sơ: ${response.body}');
+  }
+
+  static Future<void> acceptPrivacyPolicy() async {
+    await updateProfile({'consentRegulation': true});
   }
 
   static Future<Map<String, dynamic>> getMedicalRecord() async {
@@ -300,5 +308,182 @@ class AuthService {
     );
     if (response.statusCode == 200) return jsonDecode(response.body);
     throw Exception('Lỗi đăng ký staff: ${response.body}');
+  }
+
+  // =============================================
+  // Citizen: NFC Management
+  // =============================================
+
+  static Future<Map<String, dynamic>> linkNFCTag(
+    String nfcId,
+    String name,
+  ) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/write-service/user/nfc/link'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'nfcId': nfcId,
+        'name': name,
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Lỗi kích hoạt thẻ NFC: ${response.body}');
+  }
+
+  static Future<List<dynamic>> getNFCTags() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/read-service/user/nfc'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['tags'] ?? [];
+    }
+    throw Exception('Lỗi lấy danh sách thẻ NFC: ${response.body}');
+  }
+
+  static Future<void> updateNFCTagStatus(String nfcId, String status) async {
+    final token = await getAccessToken();
+    final response = await http.patch(
+      Uri.parse('$_baseUrl/write-service/user/nfc/$nfcId/status'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'status': status}),
+    );
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Lỗi cập nhật trạng thái thẻ: ${response.body}');
+    }
+  }
+
+  static Future<void> deleteNFCTag(String nfcId) async {
+    final token = await getAccessToken();
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/write-service/user/nfc/$nfcId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Lỗi gỡ thẻ NFC: ${response.body}');
+    }
+  }
+
+  // =============================================
+  // Citizen: QR Management
+  // =============================================
+
+  static Future<List<dynamic>> getQRCodes() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/read-service/user/qr'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['qrcodes'] ?? [];
+    }
+    throw Exception('Lỗi lấy danh sách mã QR: ${response.body}');
+  }
+
+  static Future<Map<String, dynamic>> createQRCode(String name) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/write-service/user/qr/create'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'name': name}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Lỗi tạo mã QR: ${response.body}');
+  }
+
+  static Future<void> updateQRCodeStatus(String qrId, String status) async {
+    final token = await getAccessToken();
+    final response = await http.patch(
+      Uri.parse('$_baseUrl/write-service/user/qr/$qrId/status'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'status': status}),
+    );
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Lỗi cập nhật trạng thái mã QR: ${response.body}');
+    }
+  }
+
+  static Future<void> deleteQRCode(String qrId) async {
+    final token = await getAccessToken();
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/write-service/user/qr/$qrId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Lỗi xóa mã QR: ${response.body}');
+    }
+  }
+  
+  // =============================================
+  // Identity Verification (NFC/QR)
+  // =============================================
+
+  /// Xác định danh tính nạn nhân thông qua NFC hoặc QR.
+  /// Trả về { profile, medicalRecord, emergencyContacts }
+  static Future<Map<String, dynamic>> verifyIdentity({
+    String? nfcId,
+    String? qrId,
+    required String hashedCitizenId,
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/read-service/user/verify'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'nfcId': nfcId,
+        'qrId': qrId,
+        'hashedCitizenId': hashedCitizenId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    
+    final errorData = jsonDecode(response.body);
+    throw Exception(errorData['message'] ?? 'Lỗi xác minh danh tính');
   }
 }

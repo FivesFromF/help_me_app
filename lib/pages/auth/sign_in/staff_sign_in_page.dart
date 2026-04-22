@@ -5,7 +5,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/widgets/custom_text_field.dart';
 import 'package:help_me_app/widgets/otp_input_widget.dart';
-import 'package:help_me_app/shared/services/auth_service.dart';
 
 class StaffSignInPage extends StatefulWidget {
   const StaffSignInPage({super.key});

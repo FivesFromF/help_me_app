@@ -10,7 +10,10 @@ import '../pages/privacy/privacy_policy_page.dart';
 import '../pages/notifications/notifications_page.dart';
 import '../pages/settings/how_to_use_page.dart';
 import '../pages/profile/medical_record_page.dart';
-import '../pages/profile/emergency_contacts_page.dart';
+import 'package:help_me_app/pages/profile/account_verification_page.dart';
+import 'package:help_me_app/pages/profile/profile_dashboard_page.dart';
+import 'package:help_me_app/pages/profile/emergency_contacts_page.dart';
+import 'package:help_me_app/pages/identity_verification/identity_scan_page.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -37,7 +40,10 @@ final router = GoRouter(
     GoRoute(path: '/support', builder: (context, state) => const SupportPage()),
     GoRoute(
       path: '/privacy',
-      builder: (context, state) => const PrivacyPolicyPage(),
+      builder: (context, state) {
+        final consent = state.uri.queryParameters['consent'] == 'true';
+        return PrivacyPolicyPage(isConsentMode: consent);
+      },
     ),
     GoRoute(
       path: '/notifications',
@@ -49,12 +55,24 @@ final router = GoRouter(
     ),
 
     GoRoute(
+      path: '/profile',
+      builder: (context, state) => const ProfileDashboardPage(),
+    ),
+    GoRoute(
       path: '/profile/medical-record',
       builder: (context, state) => const MedicalRecordPage(),
     ),
     GoRoute(
       path: '/profile/emergency-contacts',
       builder: (context, state) => const EmergencyContactsPage(),
+    ),
+    GoRoute(
+      path: '/profile/verification',
+      builder: (context, state) => const AccountVerificationPage(),
+    ),
+    GoRoute(
+      path: '/identity-scan',
+      builder: (context, state) => const IdentityScanPage(),
     ),
     GoRoute(
       path: '/details/:message',

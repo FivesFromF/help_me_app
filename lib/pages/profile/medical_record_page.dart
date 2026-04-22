@@ -282,7 +282,9 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Text(
-              _nameController.text.isNotEmpty ? _nameController.text : 'Người dùng',
+              _nameController.text.isNotEmpty
+                  ? _nameController.text
+                  : 'Người dùng',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -323,9 +325,12 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
             ),
           ),
           const Divider(height: 1, color: Color(0xFFE6E6E6)),
-          _buildQuickRow(PhosphorIconsRegular.qrCode, 'Mã QR của bạn'),
+          _buildQuickRow(
+            PhosphorIconsRegular.contactlessPayment,
+            'Quản lý thẻ NFC',
+          ),
           const Divider(height: 1, color: Color(0xFFE6E6E6)),
-          _buildQuickRow(PhosphorIconsRegular.contactlessPayment, 'Quản lý thẻ NFC'),
+          _buildQuickRow(PhosphorIconsRegular.qrCode, 'Mã QR của bạn'),
         ],
       ),
     );
@@ -412,10 +417,12 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
               child: DropdownButton<String>(
                 value: _bloodGroup,
                 items: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
-                    .map((value) => DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        ))
+                    .map(
+                      (value) => DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      ),
+                    )
                     .toList(),
                 onChanged: (val) => setState(() => _bloodGroup = val!),
               ),
@@ -485,7 +492,8 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: valueWidget ??
+                  child:
+                      valueWidget ??
                       Text(
                         value ?? '',
                         style: const TextStyle(
@@ -552,8 +560,13 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                         height: 26,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(3),
-                          color: checked ? const Color(0xFF10B981) : Colors.white,
-                          border: Border.all(color: const Color(0xFF9B9B9B), width: 2),
+                          color: checked
+                              ? const Color(0xFF10B981)
+                              : Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFF9B9B9B),
+                            width: 2,
+                          ),
                         ),
                         child: checked
                             ? const Icon(
@@ -620,7 +633,9 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                       decoration: const BoxDecoration(
                         color: AppColors.primaryOrange,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(18),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -668,7 +683,10 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 8,
+                              ),
                               child: Text(
                                 'Bạn có mắc phải một hoặc nhiều loại dị ứng dưới đây không?',
                                 style: TextStyle(
@@ -814,11 +832,20 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                         height: 26,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(3),
-                          color: checked ? const Color(0xFF10B981) : Colors.white,
-                          border: Border.all(color: const Color(0xFF9B9B9B), width: 2),
+                          color: checked
+                              ? const Color(0xFF10B981)
+                              : Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFF9B9B9B),
+                            width: 2,
+                          ),
                         ),
                         child: checked
-                            ? const Icon(Icons.check, color: Colors.white, size: 18)
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 18,
+                              )
                             : null,
                       ),
                       const SizedBox(width: 14),
@@ -852,7 +879,9 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                       decoration: const BoxDecoration(
                         color: AppColors.primaryOrange,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(18),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -900,7 +929,10 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 8,
+                              ),
                               child: Text(
                                 'Bạn đang sử dụng loại thuốc nào dưới đây?',
                                 style: TextStyle(
@@ -937,10 +969,17 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                                         color: noneSelected
                                             ? const Color(0xFF10B981)
                                             : Colors.white,
-                                        border: Border.all(color: const Color(0xFF9B9B9B), width: 2),
+                                        border: Border.all(
+                                          color: const Color(0xFF9B9B9B),
+                                          width: 2,
+                                        ),
                                       ),
                                       child: noneSelected
-                                          ? const Icon(Icons.check, color: Colors.white, size: 18)
+                                          ? const Icon(
+                                              Icons.check,
+                                              color: Colors.white,
+                                              size: 18,
+                                            )
                                           : null,
                                     ),
                                     const SizedBox(width: 14),
@@ -958,7 +997,12 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                             ),
                             Container(
                               margin: const EdgeInsets.only(bottom: 14),
-                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                14,
+                                16,
+                                12,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(14),
@@ -999,9 +1043,15 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                                   hintText: '...',
                                   filled: true,
                                   fillColor: Color(0xFFF8F8F8),
-                                  border: OutlineInputBorder(borderSide: BorderSide.none),
-                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide.none),
-                                  focusedBorder: OutlineInputBorder(borderSide: BorderSide.none),
+                                  border: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
                                   contentPadding: EdgeInsets.all(12),
                                 ),
                               ),
@@ -1054,11 +1104,20 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                         height: 26,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(3),
-                          color: checked ? const Color(0xFF10B981) : Colors.white,
-                          border: Border.all(color: const Color(0xFF9B9B9B), width: 2),
+                          color: checked
+                              ? const Color(0xFF10B981)
+                              : Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFF9B9B9B),
+                            width: 2,
+                          ),
                         ),
                         child: checked
-                            ? const Icon(Icons.check, color: Colors.white, size: 18)
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 18,
+                              )
                             : null,
                       ),
                       const SizedBox(width: 14),
@@ -1092,7 +1151,9 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                       decoration: const BoxDecoration(
                         color: AppColors.primaryOrange,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(18),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -1140,7 +1201,10 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 8,
+                              ),
                               child: Text(
                                 'Bạn đang có tình trạng bệnh lý nào dưới đây?',
                                 style: TextStyle(
@@ -1177,10 +1241,17 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                                         color: noneSelected
                                             ? const Color(0xFF10B981)
                                             : Colors.white,
-                                        border: Border.all(color: const Color(0xFF9B9B9B), width: 2),
+                                        border: Border.all(
+                                          color: const Color(0xFF9B9B9B),
+                                          width: 2,
+                                        ),
                                       ),
                                       child: noneSelected
-                                          ? const Icon(Icons.check, color: Colors.white, size: 18)
+                                          ? const Icon(
+                                              Icons.check,
+                                              color: Colors.white,
+                                              size: 18,
+                                            )
                                           : null,
                                     ),
                                     const SizedBox(width: 14),
@@ -1198,7 +1269,12 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                             ),
                             Container(
                               margin: const EdgeInsets.only(bottom: 14),
-                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                14,
+                                16,
+                                12,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(14),
@@ -1239,9 +1315,15 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                                   hintText: '...',
                                   filled: true,
                                   fillColor: Color(0xFFF8F8F8),
-                                  border: OutlineInputBorder(borderSide: BorderSide.none),
-                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide.none),
-                                  focusedBorder: OutlineInputBorder(borderSide: BorderSide.none),
+                                  border: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
                                   contentPadding: EdgeInsets.all(12),
                                 ),
                               ),

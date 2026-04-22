@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/pages/profile/emergency_contacts_page.dart';
 import 'package:help_me_app/pages/profile/medical_record_page.dart';
+import 'package:help_me_app/shared/models/citizen_profile.dart';
+import 'package:help_me_app/shared/services/auth_service.dart';
 
 class ProfileDashboardPage extends StatefulWidget {
   const ProfileDashboardPage({super.key});
@@ -12,9 +15,51 @@ class ProfileDashboardPage extends StatefulWidget {
 
 class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   int _activeTab = 0;
+  bool _isChecking = true;
+  final bool _showWarning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStatus();
+  }
+
+  Future<void> _checkStatus() async {
+    try {
+      final profileData = await AuthService.getCachedProfile();
+      if (profileData != null && profileData['citizen'] != null) {
+        final citizen = CitizenProfile.fromJson(profileData['citizen']);
+
+        // Nếu chưa khai báo thông tin cơ bản -> Chuyển hướng đến trang hoàn thiện hồ sơ
+        if (!citizen.firstDeclareProfile && mounted) {
+          Future.microtask(() {
+            if (mounted) context.pushReplacement('/auth/sign-up');
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking profile status: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isChecking = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isChecking) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryOrange),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0F0),
       appBar: AppBar(
