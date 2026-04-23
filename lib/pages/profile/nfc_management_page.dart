@@ -355,7 +355,11 @@ class _NfcScanWorkflowState extends State<_NfcScanWorkflow> {
              final success = await NfcService.writeNdef(tag, _pendingHashedId!);
              if (success) {
                 _onWriteSuccess();
-                return;
+             } else {
+                setState(() {
+                  _status = 'WRITING_RETRY';
+                  _message = 'Thẻ không hỗ trợ ghi dữ liệu. Vui lòng thử thẻ khác.';
+                });
              }
            } catch (e) {
              debugPrint('NfcWorkflow: Retry write failed: $e');
@@ -363,8 +367,8 @@ class _NfcScanWorkflowState extends State<_NfcScanWorkflow> {
                _status = 'WRITING_RETRY';
                _message = 'Vẫn chưa ghi được. Vui lòng CHẠM GIỮ THẺ lâu hơn một chút...';
              });
-             return; // Don't stop session, let them try again
            }
+           return; // <--- QUAN TRỌNG: Phải thoát ở đây để không Link lại
         }
 
         // 3. Link Backend (Flow bình thường)
@@ -480,25 +484,32 @@ class _NfcScanWorkflowState extends State<_NfcScanWorkflow> {
             ),
           ],
           const Spacer(),
-          if (_status == 'ERROR')
+          if (_status == 'ERROR' || _status == 'WRITING_RETRY')
             ElevatedButton(
               onPressed: () {
-                setState(() {
-                  _status = 'SCANNING_UID';
-                  _message = 'Áp thẻ vào gần cảm biến NFC của điện thoại...';
-                  _errorMessage = null;
-                });
-                _startActivation();
+                if (_status == 'WRITING_RETRY') {
+                  // Just restart scanning to catch the tag and write
+                  _startActivation(); 
+                } else {
+                  setState(() {
+                    _status = 'SCANNING_UID';
+                    _message = 'Áp thẻ vào gần cảm biến NFC của điện thoại...';
+                    _errorMessage = null;
+                  });
+                  _startActivation();
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryOrange,
                 minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              child: const Text(
-                'Thử lại',
-                style: TextStyle(
+              child: Text(
+                _status == 'WRITING_RETRY' ? 'Quét lại để ghi thẻ' : 'Thử lại',
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
             ),

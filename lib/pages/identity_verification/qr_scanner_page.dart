@@ -155,7 +155,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
                   child: Row(
                     children: [
                       // Logo
-                      Container(
+                      SizedBox(
                         width: 70,
                         height: 70,
                         child: SvgPicture.asset('assets/logo.svg'),

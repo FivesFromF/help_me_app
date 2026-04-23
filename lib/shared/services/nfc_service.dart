@@ -93,13 +93,18 @@ class NfcService {
   /// Ghi mã băm vào thẻ (phải gọi trong khi session đang chạy).
   static Future<bool> writeNdef(NfcTag tag, String text) async {
     debugPrint('NFC Service: Attempting to write NDEF text: $text');
+    
+    // Small delay before even getting Ndef object to let hardware settle
+    await Future.delayed(const Duration(milliseconds: 300));
+    
     final ndef = Ndef.from(tag);
     if (ndef == null) {
-      debugPrint('NFC Service: NDEF is not supported on this tag');
+      debugPrint('NFC Service: NDEF is not supported on this tag or tag was moved too fast');
       return false;
     }
+    
     if (!ndef.isWritable) {
-      debugPrint('NFC Service: Tag is not writable');
+      debugPrint('NFC Service: Tag is not writable (maybe locked?)');
       return false;
     }
 
@@ -107,21 +112,22 @@ class NfcService {
     final message = NdefMessage([record]);
 
     try {
-      // Small delay to ensure hardware is ready after backend call
-      await Future.delayed(const Duration(milliseconds: 200));
+      // Increased delay to ensure hardware is ready after backend call/discovery
+      await Future.delayed(const Duration(milliseconds: 500));
       
       await ndef.write(message);
       debugPrint('NFC Service: Write successful!');
       return true;
     } catch (e) {
-      debugPrint('NFC Service: Initial write failed, retrying once... $e');
+      debugPrint('NFC Service: Initial write failed: $e. Retrying in 1 second...');
       try {
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 1000));
         await ndef.write(message);
         debugPrint('NFC Service: Write successful on retry!');
         return true;
       } catch (retryError) {
         debugPrint('NFC Service: Write failed after retry: $retryError');
+        // Check if tag is still there
         rethrow;
       }
     }

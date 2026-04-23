@@ -4,9 +4,9 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/shared/services/auth_service.dart';
 
+import 'package:help_me_app/pages/identity_verification/face_recognition_page.dart';
 import 'package:help_me_app/pages/identity_verification/identity_scan_page.dart';
 import 'package:help_me_app/pages/identity_verification/qr_scanner_page.dart';
-import 'package:help_me_app/pages/profile/medical_record_page.dart';
 import 'package:help_me_app/pages/settings/settings_page.dart';
 import 'package:help_me_app/shared/widgets/verification_guard_dialog.dart';
 import 'package:help_me_app/shared/models/citizen_profile.dart';
@@ -321,89 +321,97 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 const SizedBox(height: 40),
 
                 // FACE RECOGNITION CARD
-                Stack(
-                  clipBehavior: Clip
-                      .none, // Quan trọng: Để con cái có thể bay ra ngoài viền
-                  children: [
-                    // BƯỚC 1: Đưa cái Card màu cam nhạt vào làm con của Stack
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF0E3), // Peach background
-                        borderRadius: BorderRadius.circular(30),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const FaceRecognitionPage(),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  'Nhận diện',
-                                  style: TextStyle(
-                                    color: Color(0xFF888888),
-                                    fontSize: 16,
+                    );
+                  },
+                  child: Stack(
+                    clipBehavior: Clip
+                        .none, // Quan trọng: Để con cái có thể bay ra ngoài viền
+                    children: [
+                      // BƯỚC 1: Đưa cái Card màu cam nhạt vào làm con của Stack
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF0E3), // Peach background
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Nhận diện',
+                                    style: TextStyle(
+                                      color: Color(0xFF888888),
+                                      fontSize: 16,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'khuôn mặt',
-                                  style: TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primaryBlack,
-                                    letterSpacing: -0.5,
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'khuôn mặt',
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.primaryBlack,
+                                      letterSpacing: -0.5,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          // Circle Button (Phần icon cam đậm)
-                          Container(
-                            width: 140,
-                            height: 140,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryOrange.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Container(
-                                width: 110,
-                                height: 110,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primaryOrange,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  PhosphorIconsRegular.userFocus,
-                                  color: Colors.white,
-                                  size: 64,
+                            // Circle Button (Phần icon cam đậm)
+                            Container(
+                              width: 140,
+                              height: 140,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryOrange
+                                    .withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Container(
+                                  width: 110,
+                                  height: 110,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primaryOrange,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    PhosphorIconsRegular.userFocus,
+                                    color: Colors.white,
+                                    size: 64,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // BƯỚC 2: Cái Decorative Shape bây giờ nằm đè lên Card và có thể văng ra ngoài
-                    Positioned(
-                      top: -15,
-                      right: 40,
-                      child: Container(
-                        width: 80,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryOrange,
-                          borderRadius: BorderRadius.circular(10),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      // BƯỚC 2: Cái Decorative Shape bây giờ nằm đè lên Card và có thể văng ra ngoài
+                      Positioned(
+                        top: -15,
+                        right: 40,
+                        child: Container(
+                          width: 80,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryOrange,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-
                 const SizedBox(height: 20),
 
                 // NFC and QR Cards

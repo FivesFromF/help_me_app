@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -5,9 +7,26 @@ import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/shared/services/auth_service.dart';
 import 'package:help_me_app/pages/profile/nfc_management_page.dart';
 import 'package:help_me_app/pages/profile/qr_management_page.dart';
+import 'package:help_me_app/pages/profile/medical_record_page.dart';
+import 'package:help_me_app/pages/auth/sign_up/face_enrollment_page.dart';
+
+import 'package:help_me_app/shared/widgets/verification_guard_dialog.dart';
+import 'package:help_me_app/shared/models/citizen_profile.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
+
+  Future<void> _ensureVerified(BuildContext context, VoidCallback onSuccess) async {
+    final profileData = await AuthService.getCachedProfile();
+    if (profileData != null && profileData['citizen'] != null) {
+      final citizen = CitizenProfile.fromJson(profileData['citizen']);
+      if (!citizen.isVerified) {
+        if (context.mounted) VerificationGuardDialog.show(context);
+        return;
+      }
+    }
+    onSuccess();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,18 +68,18 @@ class SettingsPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            PhosphorIconsRegular.camera,
-                            color: AppColors.primaryOrange,
-                            size: 24,
-                          ),
-                        ),
+                        // Container(
+                        //   padding: const EdgeInsets.all(8),
+                        //   decoration: const BoxDecoration(
+                        //     color: Colors.white,
+                        //     shape: BoxShape.circle,
+                        //   ),
+                        //   child: const Icon(
+                        //     PhosphorIconsRegular.camera,
+                        //     color: AppColors.primaryOrange,
+                        //     size: 24,
+                        //   ),
+                        // ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -136,8 +155,13 @@ class SettingsPage extends StatelessWidget {
                 _buildSettingItem(
                   icon: PhosphorIconsRegular.userCircleGear,
                   label: 'Thông tin người dùng',
-                  onTap: () {},
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const MedicalRecordPage(),
+                    ),
+                  ),
                 ),
+
                 _buildSettingItem(
                   icon: PhosphorIconsRegular.bell,
                   label: 'Thông báo',
@@ -181,28 +205,37 @@ class SettingsPage extends StatelessWidget {
 
             // Device Management Section
             _buildSection(
-              title: 'Quản lý định danh thiết bị',
+              title: 'Quản lý định danh',
               items: [
+                _buildSettingItem(
+                  icon: PhosphorIconsRegular.faceMask,
+                  label: 'Cập nhật khuôn mặt',
+                  onTap: () => _ensureVerified(context, () => _openFaceEnrollment(context)),
+                ),
                 _buildSettingItem(
                   icon: PhosphorIconsRegular.rssSimple,
                   label: 'Quản lý thẻ NFC',
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const NfcManagementPage(),
-                      ),
-                    );
+                    _ensureVerified(context, () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NfcManagementPage(),
+                        ),
+                      );
+                    });
                   },
                 ),
                 _buildSettingItem(
                   icon: PhosphorIconsRegular.qrCode,
                   label: 'Quản lý mã QR',
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const QRManagementPage(),
-                      ),
-                    );
+                    _ensureVerified(context, () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const QRManagementPage(),
+                        ),
+                      );
+                    });
                   },
                 ),
               ],
@@ -346,6 +379,38 @@ class SettingsPage extends StatelessWidget {
             color: Color(0xFFEEEEEE),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openFaceEnrollment(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FaceEnrollmentPage(
+          onFaceCaptured: (path) async {
+            // Encode to base64 and update profile
+            final bytes = await File(path).readAsBytes();
+            final b64 = base64Encode(bytes);
+
+            try {
+              await AuthService.updateProfile({'faceImageB64': b64});
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cập nhật khuôn mặt thành công'),
+                  ),
+                );
+                Navigator.pop(context);
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+              }
+            }
+          },
+        ),
       ),
     );
   }

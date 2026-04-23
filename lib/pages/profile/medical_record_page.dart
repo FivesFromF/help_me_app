@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
@@ -5,6 +7,11 @@ import 'package:help_me_app/pages/profile/emergency_contacts_page.dart';
 import 'package:help_me_app/shared/services/auth_service.dart';
 import 'package:help_me_app/shared/models/citizen_profile.dart';
 import 'package:help_me_app/shared/models/medical_record.dart';
+import 'package:help_me_app/pages/auth/sign_up/face_enrollment_page.dart';
+import 'package:help_me_app/shared/widgets/verification_guard_dialog.dart';
+
+import 'package:help_me_app/pages/profile/nfc_management_page.dart';
+import 'package:help_me_app/pages/profile/qr_management_page.dart';
 
 class MedicalRecordPage extends StatefulWidget {
   const MedicalRecordPage({super.key, this.showScaffold = true});
@@ -104,6 +111,14 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _ensureVerified(VoidCallback onSuccess) async {
+    if (!_profile.isVerified) {
+      if (mounted) VerificationGuardDialog.show(context);
+      return;
+    }
+    onSuccess();
   }
 
   Future<void> _save() async {
@@ -297,17 +312,28 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 100,
-                  height: 128,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8E8E8),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    PhosphorIconsRegular.userCircle,
-                    size: 58,
-                    color: Color(0xFFCFCFCF),
+                InkWell(
+                  // onTap: () => _ensureVerified(_updateFaceImage),
+                  child: Container(
+                    width: 100,
+                    height: 128,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8E8E8),
+                      borderRadius: BorderRadius.circular(10),
+                      image: _profile.avatarUrl.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(_profile.avatarUrl),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: _profile.avatarUrl.isEmpty
+                        ? const Icon(
+                            PhosphorIconsRegular.userCircle,
+                            size: 58,
+                            color: Color(0xFFCFCFCF),
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -326,11 +352,30 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
           ),
           const Divider(height: 1, color: Color(0xFFE6E6E6)),
           _buildQuickRow(
-            PhosphorIconsRegular.contactlessPayment,
-            'Quản lý thẻ NFC',
+            PhosphorIconsRegular.faceMask,
+            'Cập nhật khuôn mặt',
+            onTap: () => _ensureVerified(_updateFaceImage),
           ),
           const Divider(height: 1, color: Color(0xFFE6E6E6)),
-          _buildQuickRow(PhosphorIconsRegular.qrCode, 'Mã QR của bạn'),
+          _buildQuickRow(
+            PhosphorIconsRegular.contactlessPayment,
+            'Quản lý thẻ NFC',
+            onTap: () => _ensureVerified(() {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NfcManagementPage()),
+              );
+            }),
+          ),
+          const Divider(height: 1, color: Color(0xFFE6E6E6)),
+          _buildQuickRow(
+            PhosphorIconsRegular.qrCode,
+            'Mã QR của bạn',
+            onTap: () => _ensureVerified(() {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QRManagementPage()),
+              );
+            }),
+          ),
         ],
       ),
     );
@@ -367,25 +412,31 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
     );
   }
 
-  Widget _buildQuickRow(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primaryBlack, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.primaryBlack,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+  Widget _buildQuickRow(IconData icon, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primaryBlack, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.primaryBlack,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-          const Icon(PhosphorIconsRegular.caretRight, color: Color(0xFFA8A8A8)),
-        ],
+            const Icon(
+              PhosphorIconsRegular.caretRight,
+              color: Color(0xFFA8A8A8),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1368,6 +1419,41 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
               color: Colors.white,
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateFaceImage() async {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FaceEnrollmentPage(
+          onFaceCaptured: (path) async {
+            final bytes = await File(path).readAsBytes();
+            final b64 = base64Encode(bytes);
+
+            setState(() => _isLoading = true);
+            try {
+              await AuthService.updateProfile({'faceImageB64': b64});
+              await _fetchData(); // Refresh profile
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cập nhật ảnh đại diện thành công'),
+                  ),
+                );
+                Navigator.pop(context);
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+              }
+            } finally {
+              setState(() => _isLoading = false);
+            }
+          },
         ),
       ),
     );

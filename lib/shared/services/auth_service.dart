@@ -486,4 +486,35 @@ class AuthService {
     final errorData = jsonDecode(response.body);
     throw Exception(errorData['message'] ?? 'Lỗi xác minh danh tính');
   }
+
+  // =============================================
+  // Identity Verification (Face Recognition)
+  // =============================================
+
+  /// Tìm kiếm danh tính nạn nhân thông qua khuôn mặt.
+  /// Trả về { profile, medicalRecord, emergencyContacts }
+  static Future<Map<String, dynamic>> searchByFace({
+    String? faceImageB64,
+    List<double>? faceVector,
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/read-service/user/search'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'faceImageB64': faceImageB64,
+        'faceVector': faceVector,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+
+    final errorData = jsonDecode(response.body);
+    throw Exception(errorData['message'] ?? 'Không tìm thấy thông tin nạn nhân');
+  }
 }
