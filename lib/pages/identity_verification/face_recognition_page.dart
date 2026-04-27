@@ -22,7 +22,7 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
   CameraController? _cameraController;
   FaceDetector? _faceDetector;
   bool _isBusy = false;
-  bool _isScanning = true;
+  final bool _isScanning = true;
   String _statusMessage = 'Đang quét khuôn mặt...';
   bool _flashOn = false;
 
@@ -82,8 +82,12 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
   }
 
   void _processCameraImage(CameraImage image) async {
-    if (_isBusy || _faceDetector == null || !_isScanning || _isProcessingMatch)
+    if (_isBusy ||
+        _faceDetector == null ||
+        !_isScanning ||
+        _isProcessingMatch) {
       return;
+    }
     _isBusy = true;
 
     try {

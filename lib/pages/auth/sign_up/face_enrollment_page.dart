@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:help_me_app/app_colors.dart';
-import 'package:image/image.dart' as img;
 
 class FaceEnrollmentPage extends StatefulWidget {
   final Function(String base64Image) onFaceCaptured;
@@ -21,7 +20,7 @@ class _FaceEnrollmentPageState extends State<FaceEnrollmentPage> {
   FaceDetector? _faceDetector;
   bool _isBusy = false;
   String _instruction = "Đang khởi tạo camera...";
-  
+
   // Enrollment Flow States
   bool _hasInitialPosition = false;
   bool _hasBlinked = false;
@@ -92,7 +91,7 @@ class _FaceEnrollmentPageState extends State<FaceEnrollmentPage> {
         final face = faces.first;
         final yaw = face.headEulerAngleY ?? 0;
         final pitch = face.headEulerAngleX ?? 0;
-        
+
         // Ratio Check
         final faceWidth = face.boundingBox.width;
         final faceHeight = face.boundingBox.height;
@@ -238,11 +237,7 @@ class _FaceEnrollmentPageState extends State<FaceEnrollmentPage> {
           Center(child: CameraPreview(_cameraController!)),
 
           // Oval Overlay (Dark background with oval hole)
-          Positioned.fill(
-            child: CustomPaint(
-              painter: OvalOverlayPainter(),
-            ),
-          ),
+          Positioned.fill(child: CustomPaint(painter: OvalOverlayPainter())),
 
           // Oval Border
           Center(
@@ -253,10 +248,14 @@ class _FaceEnrollmentPageState extends State<FaceEnrollmentPage> {
                 border: Border.all(
                   color: _progress >= 1.0
                       ? AppColors.primaryGreen
-                      : AppColors.primaryOrange.withValues(alpha: 0.5 + 0.5 * _progress),
+                      : AppColors.primaryOrange.withValues(
+                          alpha: 0.5 + 0.5 * _progress,
+                        ),
                   width: 4,
                 ),
-                borderRadius: BorderRadius.all(Radius.elliptical(size.width * 0.75, size.height * 0.45)),
+                borderRadius: BorderRadius.all(
+                  Radius.elliptical(size.width * 0.75, size.height * 0.45),
+                ),
               ),
             ),
           ),
