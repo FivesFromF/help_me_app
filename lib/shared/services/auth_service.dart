@@ -4,33 +4,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 
-/// Luồng đăng nhập citizen:
+/// Luồng đăng nhập citizen (Typescript Backend):
 /// 1. Người dùng nhấn "Đăng nhập với Google"
 /// 2. [google_sign_in] mở màn hình chọn tài khoản Google
-/// 3. Lấy idToken từ GoogleAuth
-/// 4. Gửi idToken lên Cognito để đổi lấy accessToken
-///    (Trong MVP: gửi thẳng idToken lên backend /signin)
-/// 5. Backend kiểm tra Cognito Group → trả về CitizenProfile
+/// 3. Backend (Cognito Post-Confirmation Trigger) tự động tạo user trong DB.
+/// 4. Lấy accessToken từ CognitoAuthSession
+/// 5. Gọi GET /api/v1/read/citizen/profile để lấy dữ liệu về hiển thị
 /// 6. Lưu token + profile vào SharedPreferences
-/// 7. Chuyển đến màn hình Home (hoặc CompleteProfile nếu lần đầu)
 
 class AuthService {
+  // TODO: Cập nhật URL này sau khi chạy Terraform Apply cho Backend mới
   static const String _baseUrl =
       'https://nv3jx897x9.execute-api.ap-southeast-1.amazonaws.com';
 
   // =============================================
-  // Google Sign-In → Backend /signin
+  // Google Sign-In → Backend /profile
   // =============================================
 
-  /// Trả về profile từ backend sau khi đăng nhập thành công qua Amplify.
   static Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
-      // 1. Kích hoạt Amplify Social Login (Mở trình duyệt Hosted UI)
       final result = await Amplify.Auth.signInWithWebUI(
         provider: AuthProvider.google,
         options: const SignInWithWebUIOptions(
           pluginOptions: CognitoSignInWithWebUIPluginOptions(
-            isPreferPrivateSession: true, // Ép dùng chế độ ẩn danh (iOS)
+            isPreferPrivateSession: true, 
           ),
         ),
       );
@@ -39,34 +36,33 @@ class AuthService {
         throw Exception('Đăng nhập không thành công');
       }
 
-      // 2. Lấy Token từ Cognito
-      final session =
-          await Amplify.Auth.fetchAuthSession() as CognitoAuthSession;
+      final session = await Amplify.Auth.fetchAuthSession(
+        options: const FetchAuthSessionOptions(forceRefresh: true),
+      ) as CognitoAuthSession;
       final accessToken = session.userPoolTokensResult.value.accessToken.raw;
-      final idToken = session.userPoolTokensResult.value.idToken.raw;
 
-      // 3. Gửi idToken lên backend để đồng bộ DB và lấy Citizen Profile
-      // Chúng ta gửi idToken vào trường 'accessToken' của payload 
-      // vì backend dùng nó để parse Email và Name.
-      final response = await http.post(
-        Uri.parse('$_baseUrl/write-service/signin'),
+      // Backend tự động đồng bộ user qua Cognito Trigger. 
+      // Chỉ cần gọi GET Profile để lấy thông tin mới nhất.
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/v1/read/citizen/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
         },
-        body: jsonEncode({'accessToken': idToken}),
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('Backend lỗi đồng bộ: ${response.body}');
+      Map<String, dynamic> data = {'role': 'citizen'};
+      if (response.statusCode == 200) {
+        final profileData = jsonDecode(response.body);
+        data['profile'] = profileData['profile'];
+      } else {
+        // First login fallback
+        data['profile'] = {};
       }
 
-      final Map<String, dynamic> data = jsonDecode(response.body);
-
-      // Lưu profile vào SharedPreferences để dùng cho các màn hình khác
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', accessToken);
-      await prefs.setString('role', data['role'] ?? 'citizen');
+      await prefs.setString('role', data['role']);
       await prefs.setString('profile', jsonEncode(data));
 
       return data;
@@ -82,7 +78,6 @@ class AuthService {
 
   static Future<void> signOut() async {
     try {
-      // 1. Chờ đợi Amplify thực hiện đăng xuất hoàn toàn (bao gồm cả việc mở/đóng trình duyệt)
       await Amplify.Auth.signOut(
         options: const SignOutOptions(globalSignOut: true),
       );
@@ -90,14 +85,9 @@ class AuthService {
       safePrint('SignOut Error: $e');
     }
 
-    // 2. Sau khi đã đăng xuất trên Server, tiến hành xóa dữ liệu cục bộ
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
-
-  // =============================================
-  // Helpers: Đọc thông tin đã lưu
-  // =============================================
 
   static Future<String?> getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -122,7 +112,7 @@ class AuthService {
   }
 
   // =============================================
-  // Citizen: Hoàn thiện profile sau lần đăng nhập đầu
+  // Citizen: Hoàn thiện profile
   // =============================================
 
   static Future<Map<String, dynamic>> completeCitizenProfile(
@@ -130,7 +120,7 @@ class AuthService {
   ) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$_baseUrl/write-service/user/register'),
+      Uri.parse('$_baseUrl/api/v1/write/citizen/profile'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -140,8 +130,6 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final resData = jsonDecode(response.body);
-      print('AuthService: Profile completion response: $resData');
-      // Preserve cached envelope shape: { citizen: {...}, role, accessToken }
       final prefs = await SharedPreferences.getInstance();
       final currentRaw = prefs.getString('profile');
       final current = currentRaw != null
@@ -158,7 +146,7 @@ class AuthService {
   }
 
   // =============================================
-  // Citizen: Cập nhật hồ sơ (Hợp nhất)
+  // Citizen: Cập nhật hồ sơ
   // =============================================
 
   static Future<Map<String, dynamic>> updateProfile(
@@ -166,7 +154,7 @@ class AuthService {
   ) async {
     final token = await getAccessToken();
     final response = await http.put(
-      Uri.parse('$_baseUrl/write-service/user/profile'),
+      Uri.parse('$_baseUrl/api/v1/write/citizen/profile'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -176,7 +164,6 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final resData = jsonDecode(response.body);
-      // Preserve cached envelope shape: { citizen: {...}, role, accessToken }
       final prefs = await SharedPreferences.getInstance();
       final currentRaw = prefs.getString('profile');
       final current = currentRaw != null
@@ -199,7 +186,7 @@ class AuthService {
   static Future<Map<String, dynamic>> getMedicalRecord() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$_baseUrl/read-service/user/medical-record'),
+      Uri.parse('$_baseUrl/api/v1/read/citizen/medical-record'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -212,11 +199,10 @@ class AuthService {
     throw Exception('Lỗi lấy hồ sơ y tế: ${response.body}');
   }
 
-  /// Lấy Profile mới nhất từ server và lưu vào cache
   static Future<Map<String, dynamic>> fetchAndCacheProfile() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$_baseUrl/read-service/user/profile'),
+      Uri.parse('$_baseUrl/api/v1/read/citizen/profile'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -244,70 +230,52 @@ class AuthService {
   }
 
   // =============================================
-  // Staff/Admin: Sign In (Email + Password — qua Cognito)
-  // Staff không dùng Google, được Admin tạo tay trên Cognito Console
+  // Staff/Admin: Sign In (Email + Password)
   // =============================================
 
   static Future<Map<String, dynamic>> staffSignIn(
     String email,
     String password,
   ) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/write-service/signin'),
-      headers: {'Content-Type': 'application/json'},
-      // Staff dùng Cognito USER_PASSWORD_AUTH flow trực tiếp
-      // Trong MVP: gửi email/password, backend tự call Cognito InitiateAuth
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    try {
+      // Backend TS không hỗ trợ endpoint /signin.
+      // Dùng trực tiếp Amplify Auth để xác thực qua Cognito.
+      final result = await Amplify.Auth.signIn(
+        username: email,
+        password: password,
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final prefs = await SharedPreferences.getInstance();
-
-      // Save Token and Profile
-      if (data.containsKey('accessToken')) {
-        await prefs.setString('access_token', data['accessToken']);
+      if (!result.isSignedIn) {
+        throw Exception('Đăng nhập chưa hoàn tất');
       }
 
-      await prefs.setString('role', data['role'] ?? 'staff');
+      final session = await Amplify.Auth.fetchAuthSession() as CognitoAuthSession;
+      final accessToken = session.userPoolTokensResult.value.accessToken.raw;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', accessToken);
+      await prefs.setString('role', 'staff'); 
+      
+      final data = {'role': 'staff', 'accessToken': accessToken};
       await prefs.setString('profile', jsonEncode(data));
       return data;
+    } catch (e) {
+      throw Exception('Đăng nhập thất bại: $e');
     }
-    throw Exception('Đăng nhập thất bại: ${response.body}');
   }
 
   // =============================================
-  // Admin API helpers
+  // Admin API helpers (Chưa triển khai ở TS Backend)
   // =============================================
 
   static Future<Map<String, dynamic>> getSystemStats() async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$_baseUrl/write-service/admin/stats'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({}),
-    );
-    if (response.statusCode == 200) return jsonDecode(response.body);
-    throw Exception('Lỗi lấy thống kê: ${response.body}');
+    throw Exception('API getSystemStats chưa được hỗ trợ ở Backend TS');
   }
 
   static Future<Map<String, dynamic>> registerStaff(
     Map<String, dynamic> staffData,
   ) async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$_baseUrl/write-service/admin/staff/register'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(staffData),
-    );
-    if (response.statusCode == 200) return jsonDecode(response.body);
-    throw Exception('Lỗi đăng ký staff: ${response.body}');
+    throw Exception('API registerStaff chưa được hỗ trợ ở Backend TS');
   }
 
   // =============================================
@@ -320,7 +288,7 @@ class AuthService {
   ) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$_baseUrl/write-service/user/nfc/link'),
+      Uri.parse('$_baseUrl/api/v1/write/citizen/nfc-tags'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -340,7 +308,7 @@ class AuthService {
   static Future<List<dynamic>> getNFCTags() async {
     final token = await getAccessToken();
     final response = await http.get(
-      Uri.parse('$_baseUrl/read-service/user/nfc'),
+      Uri.parse('$_baseUrl/api/v1/read/citizen/nfc-tags'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -355,111 +323,37 @@ class AuthService {
   }
 
   static Future<void> updateNFCTagStatus(String nfcId, String status) async {
-    final token = await getAccessToken();
-    final response = await http.patch(
-      Uri.parse('$_baseUrl/write-service/user/nfc/$nfcId/status'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'status': status}),
-    );
-
-    if (response.statusCode != 204 && response.statusCode != 200) {
-      throw Exception('Lỗi cập nhật trạng thái thẻ: ${response.body}');
-    }
+    throw Exception('API updateNFCTagStatus chưa được hỗ trợ ở Backend TS');
   }
 
   static Future<void> deleteNFCTag(String nfcId) async {
-    final token = await getAccessToken();
-    final response = await http.delete(
-      Uri.parse('$_baseUrl/write-service/user/nfc/$nfcId'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode != 204 && response.statusCode != 200) {
-      throw Exception('Lỗi gỡ thẻ NFC: ${response.body}');
-    }
+    throw Exception('API deleteNFCTag chưa được hỗ trợ ở Backend TS');
   }
 
   // =============================================
-  // Citizen: QR Management
+  // Citizen: QR Management (Chưa triển khai ở TS Backend)
   // =============================================
 
   static Future<List<dynamic>> getQRCodes() async {
-    final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$_baseUrl/read-service/user/qr'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['qrcodes'] ?? [];
-    }
-    throw Exception('Lỗi lấy danh sách mã QR: ${response.body}');
+    return []; // Tạm thời ẩn
   }
 
   static Future<Map<String, dynamic>> createQRCode(String name) async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$_baseUrl/write-service/user/qr/create'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'name': name}),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    }
-    throw Exception('Lỗi tạo mã QR: ${response.body}');
+    throw Exception('API createQRCode chưa được hỗ trợ ở Backend TS');
   }
 
   static Future<void> updateQRCodeStatus(String qrId, String status) async {
-    final token = await getAccessToken();
-    final response = await http.patch(
-      Uri.parse('$_baseUrl/write-service/user/qr/$qrId/status'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'status': status}),
-    );
-
-    if (response.statusCode != 204 && response.statusCode != 200) {
-      throw Exception('Lỗi cập nhật trạng thái mã QR: ${response.body}');
-    }
+    throw Exception('API updateQRCodeStatus chưa được hỗ trợ ở Backend TS');
   }
 
   static Future<void> deleteQRCode(String qrId) async {
-    final token = await getAccessToken();
-    final response = await http.delete(
-      Uri.parse('$_baseUrl/write-service/user/qr/$qrId'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode != 204 && response.statusCode != 200) {
-      throw Exception('Lỗi xóa mã QR: ${response.body}');
-    }
+    throw Exception('API deleteQRCode chưa được hỗ trợ ở Backend TS');
   }
   
   // =============================================
-  // Identity Verification (NFC/QR)
+  // Identity Verification (NFC/QR/Face) - POST /api/v1/read/scan
   // =============================================
 
-  /// Xác định danh tính nạn nhân thông qua NFC hoặc QR.
-  /// Trả về { profile, medicalRecord, emergencyContacts }
   static Future<Map<String, dynamic>> verifyIdentity({
     String? nfcId,
     String? qrId,
@@ -467,15 +361,15 @@ class AuthService {
   }) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$_baseUrl/read-service/user/verify'),
+      Uri.parse('$_baseUrl/api/v1/read/scan'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'nfcId': nfcId,
-        'qrId': qrId,
-        'hashedCitizenId': hashedCitizenId,
+        'method': qrId != null ? 'QR' : 'NFC',
+        'tagId': nfcId ?? qrId,
+        'hashId': hashedCitizenId,
       }),
     );
 
@@ -484,29 +378,23 @@ class AuthService {
     }
     
     final errorData = jsonDecode(response.body);
-    throw Exception(errorData['message'] ?? 'Lỗi xác minh danh tính');
+    throw Exception(errorData['error'] ?? 'Lỗi xác minh danh tính');
   }
 
-  // =============================================
-  // Identity Verification (Face Recognition)
-  // =============================================
-
-  /// Tìm kiếm danh tính nạn nhân thông qua khuôn mặt.
-  /// Trả về { profile, medicalRecord, emergencyContacts }
   static Future<Map<String, dynamic>> searchByFace({
     String? faceImageB64,
     List<double>? faceVector,
   }) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$_baseUrl/read-service/user/search'),
+      Uri.parse('$_baseUrl/api/v1/read/scan'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'faceImageB64': faceImageB64,
-        'faceVector': faceVector,
+        'method': 'FACE',
+        'imageBase64': faceImageB64,
       }),
     );
 
@@ -515,6 +403,6 @@ class AuthService {
     }
 
     final errorData = jsonDecode(response.body);
-    throw Exception(errorData['message'] ?? 'Không tìm thấy thông tin nạn nhân');
+    throw Exception(errorData['error'] ?? 'Không tìm thấy thông tin nạn nhân');
   }
 }
