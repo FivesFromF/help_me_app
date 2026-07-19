@@ -1,0 +1,13 @@
+{
+  "//": "Example env config for HelpMe app. Copy to dart_defines.json and edit.",
+  "//keys": "Keys MUST match the String.fromEnvironment names in lib/config/env.dart.",
+  "//source": "Values come from `terraform output` in help_me_backend/infra.",
+  "//usage": "flutter run --dart-define-from-file=dart_defines.json",
+  "//note": "These are client-side public IDs (not secrets). Real SECRETS never go here.",
+
+  "API_ENDPOINT": "https://nv3jx897x9.execute-api.ap-southeast-1.amazonaws.com",
+  "AWS_REGION": "ap-southeast-1",
+  "COGNITO_USER_POOL_ID": "ap-southeast-1_MnBh9j0uR",
+  "COGNITO_CLIENT_ID": "1igibvo3fq9m8deiepco56nu9i",
+  "COGNITO_WEB_DOMAIN": "helpme-auth-mndkh.auth.ap-southeast-1.amazoncognito.com"
+}

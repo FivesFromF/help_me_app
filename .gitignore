@@ -47,3 +47,11 @@ app.*.map.json
 
 # Google
 client_secret_310556282701-3irs83ibmfdram1kdpbs5ism1hoeb1h6.apps.googleusercontent.com.json
+
+env.dart
+# lib/config/env.dart holds only public client-side IDs (API URL, Cognito pool/client) —
+# it's a required source file that other files import, so it MUST be tracked.
+!lib/config/env.dart
+
+# Local env overrides (copy of dart_defines.example.json). Keep the .example tracked, not this.
+dart_defines.json

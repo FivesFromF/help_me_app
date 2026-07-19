@@ -1,3 +1,7 @@
+import 'config/env.dart';
+
+// Các giá trị Cognito được nội suy từ lib/config/env.dart (nguồn duy nhất).
+// Amplify.configure() parse chuỗi này lúc runtime; vẫn giữ const vì Env.* là const.
 const amplifyconfig = '''{
   "UserAgent": "aws-amplify-cli/2.0",
   "Version": "1.0",
@@ -11,16 +15,16 @@ const amplifyconfig = '''{
         },
         "CognitoUserPool": {
           "Default": {
-            "PoolId": "ap-southeast-1_MnBh9j0uR",
-            "AppClientId": "1igibvo3fq9m8deiepco56nu9i",
-            "Region": "ap-southeast-1"
+            "PoolId": "${Env.cognitoUserPoolId}",
+            "AppClientId": "${Env.cognitoClientId}",
+            "Region": "${Env.awsRegion}"
           }
         },
         "Auth": {
           "Default": {
             "OAuth": {
-              "WebDomain": "helpme-auth-mndkh.auth.ap-southeast-1.amazoncognito.com",
-              "AppClientId": "1igibvo3fq9m8deiepco56nu9i",
+              "WebDomain": "${Env.cognitoWebDomain}",
+              "AppClientId": "${Env.cognitoClientId}",
               "SignInRedirectURI": "helpme://auth-callback",
               "SignOutRedirectURI": "helpme://auth-logout",
               "Scopes": [

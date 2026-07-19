@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
+import '../../config/env.dart';
 
 /// Luồng đăng nhập citizen (Typescript Backend):
 /// 1. Người dùng nhấn "Đăng nhập với Google"
@@ -13,9 +14,8 @@ import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 /// 6. Lưu token + profile vào SharedPreferences
 
 class AuthService {
-  // TODO: Cập nhật URL này sau khi chạy Terraform Apply cho Backend mới
-  static const String _baseUrl =
-      'https://nv3jx897x9.execute-api.ap-southeast-1.amazonaws.com';
+  // Nguồn duy nhất: lib/config/env.dart (Terraform output `api_endpoint`).
+  static const String _baseUrl = Env.apiEndpoint;
 
   // =============================================
   // Google Sign-In → Backend /profile
