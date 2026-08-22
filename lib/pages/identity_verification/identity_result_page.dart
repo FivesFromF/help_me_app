@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:help_me_app/app_colors.dart';
 import 'package:help_me_app/shared/services/auth_service.dart';
+import 'package:help_me_app/shared/services/location_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -465,9 +466,9 @@ class IdentityResultPage extends StatelessWidget {
     String selectedTag = 'Tai nạn giao thông';
     bool isSubmitting = false;
 
-    // Standard emergency location coordinates (Ho Chi Minh City default)
-    const String locationLat = '10.762622';
-    const String locationLon = '106.660172';
+    // Real-Time GPS Location State
+    LocationResult? currentLocation;
+    bool isLocating = true;
 
     final List<String> quickTags = [
       'Tai nạn giao thông',
@@ -484,6 +485,21 @@ class IdentityResultPage extends StatelessWidget {
       isScrollControlled: true,
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
+          // Trigger real GPS query once on sheet initialization
+          if (isLocating && currentLocation == null) {
+            LocationService.getCurrentLocation().then((loc) {
+              if (context.mounted) {
+                setSheetState(() {
+                  currentLocation = loc;
+                  isLocating = false;
+                });
+              }
+            });
+          }
+
+          final String latStr = currentLocation?.latString ?? LocationService.defaultLat.toString();
+          final String lonStr = currentLocation?.lonString ?? LocationService.defaultLon.toString();
+
           return Container(
             height: MediaQuery.of(context).size.height * 0.85,
             decoration: const BoxDecoration(
@@ -593,55 +609,123 @@ class IdentityResultPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 18),
 
-                        // GPS Location Card
+                        // Real-Time GPS Location Card
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: isLocating
+                                ? const Color(0xFFF0F9FF)
+                                : (currentLocation?.isRealGps == true
+                                    ? const Color(0xFFF0FDF4)
+                                    : const Color(0xFFFFFBEB)),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(
+                              color: isLocating
+                                  ? const Color(0xFFBAE6FD)
+                                  : (currentLocation?.isRealGps == true
+                                      ? const Color(0xFFBBF7D0)
+                                      : const Color(0xFFFDE68A)),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 PhosphorIconsFill.mapPin,
-                                color: Color(0xFF0284C7),
+                                color: isLocating
+                                    ? const Color(0xFF0284C7)
+                                    : (currentLocation?.isRealGps == true
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFFD97706)),
                                 size: 24,
                               ),
-                              const SizedBox(width: 10),
-                              const Expanded(
+                              const SizedBox(width: 12),
+                              Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Vị trí GPS hiện tại',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 14,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          isLocating
+                                              ? 'Đang lấy vị trí GPS thực tế...'
+                                              : (currentLocation?.isRealGps == true
+                                                  ? 'Vị trí GPS thời gian thực'
+                                                  : 'Vị trí dự phòng (GPS tắt)'),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 14,
+                                            color: isLocating
+                                                ? const Color(0xFF0369A1)
+                                                : (currentLocation?.isRealGps == true
+                                                    ? const Color(0xFF15803D)
+                                                    : const Color(0xFFB45309)),
+                                          ),
+                                        ),
+                                        if (currentLocation?.isRealGps == true && currentLocation?.accuracy != null) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '±${currentLocation!.accuracy!.toStringAsFixed(1)}m',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF16A34A),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
+                                    const SizedBox(height: 2),
                                     Text(
-                                      'Tọa độ: $locationLat, $locationLon (Tự động gắn định vị)',
+                                      isLocating
+                                          ? 'Đang đồng bộ với vệ tinh định vị...'
+                                          : 'Tọa độ: $latStr, $lonStr',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.shade700,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0284C7).withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
+                              if (isLocating)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF0284C7),
+                                  ),
+                                )
+                              else
+                                IconButton(
+                                  tooltip: 'Làm mới vị trí GPS',
+                                  icon: const Icon(
+                                    Icons.refresh_rounded,
+                                    color: Color(0xFF0284C7),
+                                    size: 22,
+                                  ),
+                                  onPressed: () {
+                                    setSheetState(() {
+                                      isLocating = true;
+                                    });
+                                    LocationService.getCurrentLocation().then((loc) {
+                                      if (context.mounted) {
+                                        setSheetState(() {
+                                          currentLocation = loc;
+                                          isLocating = false;
+                                        });
+                                      }
+                                    });
+                                  },
                                 ),
-                                child: const Icon(
-                                  Icons.gps_fixed,
-                                  color: Color(0xFF0284C7),
-                                  size: 16,
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -738,8 +822,8 @@ class IdentityResultPage extends StatelessWidget {
                                     try {
                                       final result = await AuthService.reportEmergency(
                                         victimId: victimId,
-                                        locationLat: locationLat,
-                                        locationLon: locationLon,
+                                        locationLat: latStr,
+                                        locationLon: lonStr,
                                         situationDescription: descController.text.trim(),
                                       );
 
