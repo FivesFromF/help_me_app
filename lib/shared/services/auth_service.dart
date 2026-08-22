@@ -29,7 +29,7 @@ class AuthService {
         provider: AuthProvider.google,
         options: const SignInWithWebUIOptions(
           pluginOptions: CognitoSignInWithWebUIPluginOptions(
-            isPreferPrivateSession: true, // Forces fresh, private browser session without cached cookies
+            isPreferPrivateSession: false, // Forces fresh, private browser session without cached cookies
           ),
         ),
       );
@@ -650,8 +650,22 @@ class AuthService {
     String? nfcId,
     String? qrId,
     required String hashedCitizenId,
+    double? lat,
+    double? lon,
   }) async {
     final token = await getAccessToken();
+
+    // Auto-fetch real-time GPS if not explicitly provided
+    double? scanLat = lat;
+    double? scanLon = lon;
+    if (scanLat == null || scanLon == null) {
+      try {
+        final loc = await LocationService.getCurrentLocation();
+        scanLat = loc.latitude;
+        scanLon = loc.longitude;
+      } catch (_) {}
+    }
+
     final response = await http.post(
       Uri.parse('$_baseUrl/api/v1/read/scan'),
       headers: {
@@ -663,6 +677,8 @@ class AuthService {
         if (nfcId != null) 'tagId': nfcId,
         if (qrId != null) 'qrId': qrId,
         'hashId': hashedCitizenId,
+        if (scanLat != null) 'lat': scanLat.toString(),
+        if (scanLon != null) 'lon': scanLon.toString(),
       }),
     );
 
@@ -689,7 +705,20 @@ class AuthService {
     String? filePath,
     List<int>? imageBytes,
     List<double>? faceVector,
+    double? lat,
+    double? lon,
   }) async {
+    // 1. Auto-fetch real-time GPS location
+    double? scanLat = lat;
+    double? scanLon = lon;
+    if (scanLat == null || scanLon == null) {
+      try {
+        final loc = await LocationService.getCurrentLocation();
+        scanLat = loc.latitude;
+        scanLon = loc.longitude;
+      } catch (_) {}
+    }
+
     List<int> bytes;
     if (imageBytes != null) {
       bytes = imageBytes;
@@ -703,7 +732,35 @@ class AuthService {
       throw Exception('Thiếu dữ liệu hình ảnh khuôn mặt');
     }
 
-    // 1. Get presigned S3 upload URL for FACE_SCAN
+    // Fast synchronous search fallback with GPS
+    try {
+      final token = await getAccessToken();
+      final base64String = base64Encode(bytes);
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/v1/read/scan'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'method': 'FACE',
+          'imageBase64': base64String,
+          if (scanLat != null) 'lat': scanLat.toString(),
+          if (scanLon != null) 'lon': scanLon.toString(),
+        }),
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded['matchStatus'] == 'MATCH_FOUND' || decoded['victim'] != null) {
+          return _deepCastMap(decoded);
+        }
+      }
+    } catch (_) {
+      // Continue to async S3 AI job pipeline
+    }
+
+    // 2. Async S3 upload pipeline
     final uploadInfo = await getUploadUrl(
       operation: 'FACE_SCAN',
       fileType: 'image/jpeg',
@@ -712,10 +769,10 @@ class AuthService {
     final uploadUrl = uploadInfo['uploadUrl'] as String;
     final jobId = uploadInfo['jobId'] as String;
 
-    // 2. Upload raw JPEG bytes directly to S3
+    // Upload raw JPEG bytes directly to S3
     await uploadBytesToS3(uploadUrl: uploadUrl, bytes: bytes);
 
-    // 3. Poll AI worker scan job in DynamoDB
+    // Poll AI worker scan job in DynamoDB
     final result = await pollScanJob(jobId: jobId, maxAttempts: 20);
 
     if (result['matchStatus'] == 'NO_MATCH') {
