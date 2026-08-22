@@ -11,23 +11,32 @@ class Env {
   Env._();
 
   /// API Gateway / CloudFront base URL.
-  static const String apiEndpoint = String.fromEnvironment('API_ENDPOINT');
+  static const String apiEndpoint = String.fromEnvironment(
+    'API_ENDPOINT',
+    defaultValue: 'https://d24ebd8yyywrcs.cloudfront.net',
+  );
 
   /// AWS region tất cả tài nguyên được deploy.
-  static const String awsRegion = String.fromEnvironment('AWS_REGION');
+  static const String awsRegion = String.fromEnvironment(
+    'AWS_REGION',
+    defaultValue: 'ap-southeast-1',
+  );
 
   /// Cognito User Pool ID (Terraform output: `cognito_user_pool_id`).
   static const String cognitoUserPoolId = String.fromEnvironment(
     'COGNITO_USER_POOL_ID',
+    defaultValue: 'ap-southeast-1_hkkmVPQZc',
   );
 
   /// Cognito App Client ID (Terraform output: `cognito_client_id`).
   static const String cognitoClientId = String.fromEnvironment(
     'COGNITO_CLIENT_ID',
+    defaultValue: '1d3kn2l3t65dp9o2cbvvbnv30g',
   );
 
   /// Cognito Hosted-UI (OAuth) domain — dùng cho social sign-in (không chứa https://).
   static const String cognitoWebDomain = String.fromEnvironment(
     'COGNITO_WEB_DOMAIN',
+    defaultValue: 'helpme-auth-mndkh.auth.ap-southeast-1.amazoncognito.com',
   );
 }
