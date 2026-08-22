@@ -345,7 +345,7 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
                   child: Column(
                     children: [
                       _buildIdentityRow('Số CCCD', _cccdController.text),
-                      _buildIdentityRow('Ngày sinh', _dobController.text),
+                      _buildIdentityRow('Ngày sinh', _formatDob(_dobController.text)),
                       _buildIdentityRow('Giới tính', _gender),
                       _buildIdentityRow('Số điện thoại', _phoneController.text),
                     ],
@@ -383,6 +383,30 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
         ],
       ),
     );
+  }
+
+  String _formatDob(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 'Chưa cập nhật';
+    final trimmed = raw.trim();
+    if (RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(trimmed)) {
+      return trimmed;
+    }
+    try {
+      final dt = DateTime.parse(trimmed).toLocal();
+      final String day = dt.day.toString().padLeft(2, '0');
+      final String month = dt.month.toString().padLeft(2, '0');
+      final String year = dt.year.toString();
+      return '$day/$month/$year';
+    } catch (_) {
+      final parts = trimmed.split(RegExp(r'[-/]'));
+      if (parts.length == 3 && parts[0].length == 4) {
+        final y = parts[0];
+        final m = parts[1].padLeft(2, '0');
+        final d = parts[2].split('T')[0].padLeft(2, '0');
+        return '$d/$m/$y';
+      }
+      return trimmed;
+    }
   }
 
   Widget _buildIdentityRow(String label, String value) {

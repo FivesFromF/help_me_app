@@ -77,7 +77,7 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
       setState(() {
         _selectedDate = picked;
         _dobController.text =
-            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
       });
     }
   }
@@ -219,7 +219,7 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
                         child: AbsorbPointer(
                           child: CustomTextField(
                             controller: _dobController,
-                            hintText: 'Chọn ngày',
+                            hintText: 'DD/MM/YYYY',
                             prefixIcon: const Icon(
                               PhosphorIconsRegular.calendar,
                               color: AppColors.primaryOrange,

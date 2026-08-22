@@ -194,7 +194,7 @@ class IdentityResultPage extends StatelessWidget {
                       ),
                       _buildIdentityRow(
                         'Ngày sinh',
-                        profile['dob'] ?? 'Chưa rõ',
+                        _formatDob(profile['dob'] ?? profile['dateOfBirth']),
                       ),
                       _buildIdentityRow(
                         'Giới tính',
@@ -213,6 +213,31 @@ class IdentityResultPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatDob(dynamic raw) {
+    if (raw == null) return 'Chưa rõ';
+    final String str = raw.toString().trim();
+    if (str.isEmpty || str == 'null') return 'Chưa rõ';
+    if (RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(str)) {
+      return str;
+    }
+    try {
+      final dt = DateTime.parse(str).toLocal();
+      final String day = dt.day.toString().padLeft(2, '0');
+      final String month = dt.month.toString().padLeft(2, '0');
+      final String year = dt.year.toString();
+      return '$day/$month/$year';
+    } catch (_) {
+      final parts = str.split(RegExp(r'[-/]'));
+      if (parts.length == 3 && parts[0].length == 4) {
+        final y = parts[0];
+        final m = parts[1].padLeft(2, '0');
+        final d = parts[2].split('T')[0].padLeft(2, '0');
+        return '$d/$m/$y';
+      }
+      return str;
+    }
   }
 
   Widget _buildIdentityRow(String label, String value) {
