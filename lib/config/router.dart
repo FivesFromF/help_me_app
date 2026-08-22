@@ -13,6 +13,7 @@ import 'package:help_me_app/pages/profile/account_verification_page.dart';
 import 'package:help_me_app/pages/profile/profile_dashboard_page.dart';
 import 'package:help_me_app/pages/profile/emergency_contacts_page.dart';
 import 'package:help_me_app/pages/identity_verification/identity_scan_page.dart';
+import 'package:help_me_app/pages/history/history_page.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -27,6 +28,7 @@ final router = GoRouter(
     ),
 
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+    GoRoute(path: '/history', builder: (context, state) => const HistoryPage()),
     GoRoute(
       path: '/settings',
       builder: (context, state) =>

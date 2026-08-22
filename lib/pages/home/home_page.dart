@@ -7,6 +7,7 @@ import 'package:help_me_app/shared/services/auth_service.dart';
 import 'package:help_me_app/pages/identity_verification/face_recognition_page.dart';
 import 'package:help_me_app/pages/identity_verification/identity_scan_page.dart';
 import 'package:help_me_app/pages/identity_verification/qr_scanner_page.dart';
+import 'package:help_me_app/pages/history/history_page.dart';
 import 'package:help_me_app/pages/settings/settings_page.dart';
 import 'package:help_me_app/shared/widgets/verification_guard_dialog.dart';
 import 'package:help_me_app/shared/models/citizen_profile.dart';
@@ -24,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     const HomeDashboard(),
     const HomeDashboard(),
-    const Center(child: Text('Lịch sử')),
+    const HistoryPage(),
     const SettingsPage(),
   ];
 

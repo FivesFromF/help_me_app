@@ -611,8 +611,30 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      return _deepCastMap(jsonDecode(response.body));
     }
-    throw Exception('Lỗi truy cập hồ sơ nạn nhân: ${response.body}');
+    final errorData = jsonDecode(response.body);
+    throw Exception(errorData['error'] ?? 'Lỗi truy cập hồ sơ nạn nhân');
+  }
+
+  // =============================================
+  // Citizen History - GET /api/v1/read/citizen/history
+  // =============================================
+
+  static Future<Map<String, dynamic>> getHistory() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/v1/read/citizen/history'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return _deepCastMap(jsonDecode(response.body));
+    }
+    final errorData = jsonDecode(response.body);
+    throw Exception(errorData['error'] ?? 'Lỗi tải lịch sử hoạt động');
   }
 }
