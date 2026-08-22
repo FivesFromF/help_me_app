@@ -263,10 +263,12 @@ class _QRManagementPageState extends State<QRManagementPage> {
   }
 
   void _showQRCodeDialog(dynamic code) {
-    // QR Content is JSON as per requirements: { "qrId": "...", "hash": "..." }
-    final String qrContent = jsonEncode({
+    // QR Content is standard JSON: { "v": 1, "type": "HELPME_QR", "qrId": "...", "citizenId": "...", "hashId": "..." }
+    final String qrContent = code['payload'] ?? jsonEncode({
+      'v': 1,
+      'type': 'HELPME_QR',
       'qrId': code['id'],
-      'hash': code['hashedCitizenId'],
+      'hashId': code['hashId'] ?? code['hashedCitizenId'],
     });
 
     showDialog(

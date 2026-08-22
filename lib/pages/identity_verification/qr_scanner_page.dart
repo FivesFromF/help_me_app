@@ -32,7 +32,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
       // 1. Parse JSON from QR code
       final Map<String, dynamic> qrData = jsonDecode(code);
       final String? qrId = qrData['qrId'];
-      final String? hash = qrData['hash'];
+      final String? hash = qrData['hashId'] ?? qrData['hash'];
 
       if (qrId == null || hash == null) {
         throw Exception('Mã QR không đúng định dạng');

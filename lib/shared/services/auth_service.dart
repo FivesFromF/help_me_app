@@ -334,6 +334,27 @@ class AuthService {
   }
 
   // =============================================
+  // Citizen: Credentials Management (NFC & QR)
+  // =============================================
+
+  static Future<Map<String, dynamic>> getCredentials() async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/v1/read/citizen/credentials'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return _deepCastMap(decoded);
+    }
+    throw Exception('Lỗi lấy danh sách thẻ và mã QR: ${response.body}');
+  }
+
+  // =============================================
   // Citizen: NFC Management
   // =============================================
 
@@ -355,54 +376,124 @@ class AuthService {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
+      return _deepCastMap(jsonDecode(response.body));
     }
     throw Exception('Lỗi kích hoạt thẻ NFC: ${response.body}');
   }
 
   static Future<List<dynamic>> getNFCTags() async {
+    try {
+      final creds = await getCredentials();
+      return creds['nfcTags'] ?? [];
+    } catch (_) {
+      final token = await getAccessToken();
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/v1/read/citizen/nfc-tags'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['tags'] ?? [];
+      }
+      return [];
+    }
+  }
+
+  static Future<void> updateNFCTagStatus(String nfcId, String status) async {
     final token = await getAccessToken();
-    final response = await http.get(
-      Uri.parse('$_baseUrl/api/v1/read/citizen/nfc-tags'),
+    final response = await http.patch(
+      Uri.parse('$_baseUrl/api/v1/write/nfc/$nfcId/status'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'status': status}),
+    );
+
+    if (response.statusCode != 200) {
+      final errorData = jsonDecode(response.body);
+      throw Exception(errorData['error'] ?? 'Lỗi cập nhật trạng thái thẻ NFC');
+    }
+  }
+
+  static Future<void> deleteNFCTag(String nfcId) async {
+    final token = await getAccessToken();
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/api/v1/write/nfc/$nfcId'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
     );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['tags'] ?? [];
+    if (response.statusCode != 200) {
+      final errorData = jsonDecode(response.body);
+      throw Exception(errorData['error'] ?? 'Lỗi gỡ liên kết thẻ NFC');
     }
-    throw Exception('Lỗi lấy danh sách thẻ NFC: ${response.body}');
-  }
-
-  static Future<void> updateNFCTagStatus(String nfcId, String status) async {
-    throw Exception('API updateNFCTagStatus chưa được hỗ trợ ở Backend TS');
-  }
-
-  static Future<void> deleteNFCTag(String nfcId) async {
-    throw Exception('API deleteNFCTag chưa được hỗ trợ ở Backend TS');
   }
 
   // =============================================
-  // Citizen: QR Management (Chưa triển khai ở TS Backend)
+  // Citizen: QR Management
   // =============================================
 
   static Future<List<dynamic>> getQRCodes() async {
-    return []; // Tạm thời ẩn
+    final creds = await getCredentials();
+    return creds['qrCodes'] ?? [];
   }
 
   static Future<Map<String, dynamic>> createQRCode(String name) async {
-    throw Exception('API createQRCode chưa được hỗ trợ ở Backend TS');
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/v1/write/qr'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'name': name}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _deepCastMap(jsonDecode(response.body));
+    }
+    final errorData = jsonDecode(response.body);
+    throw Exception(errorData['error'] ?? 'Lỗi tạo mã QR cứu hộ');
   }
 
   static Future<void> updateQRCodeStatus(String qrId, String status) async {
-    throw Exception('API updateQRCodeStatus chưa được hỗ trợ ở Backend TS');
+    final token = await getAccessToken();
+    final response = await http.patch(
+      Uri.parse('$_baseUrl/api/v1/write/qr/$qrId/status'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'status': status}),
+    );
+
+    if (response.statusCode != 200) {
+      final errorData = jsonDecode(response.body);
+      throw Exception(errorData['error'] ?? 'Lỗi cập nhật trạng thái mã QR');
+    }
   }
 
   static Future<void> deleteQRCode(String qrId) async {
-    throw Exception('API deleteQRCode chưa được hỗ trợ ở Backend TS');
+    final token = await getAccessToken();
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/api/v1/write/qr/$qrId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      final errorData = jsonDecode(response.body);
+      throw Exception(errorData['error'] ?? 'Lỗi xóa mã QR');
+    }
   }
   
   // =============================================
@@ -423,7 +514,8 @@ class AuthService {
       },
       body: jsonEncode({
         'method': qrId != null ? 'QR' : 'NFC',
-        'tagId': nfcId ?? qrId,
+        if (nfcId != null) 'tagId': nfcId,
+        if (qrId != null) 'qrId': qrId,
         'hashId': hashedCitizenId,
       }),
     );
