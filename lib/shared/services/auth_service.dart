@@ -429,11 +429,21 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final decoded = jsonDecode(response.body);
+      return _deepCastMap(decoded);
     }
     
     final errorData = jsonDecode(response.body);
     throw Exception(errorData['error'] ?? 'Lỗi xác minh danh tính');
+  }
+
+  static Map<String, dynamic> _deepCastMap(dynamic value) {
+    if (value is Map) {
+      return value.map<String, dynamic>(
+        (k, v) => MapEntry(k.toString(), v is Map ? _deepCastMap(v) : v),
+      );
+    }
+    return <String, dynamic>{};
   }
 
   static Future<Map<String, dynamic>> searchByFace({
@@ -454,7 +464,8 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final decoded = jsonDecode(response.body);
+      return _deepCastMap(decoded);
     }
 
     final errorData = jsonDecode(response.body);

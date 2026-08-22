@@ -60,11 +60,12 @@ class SettingsPage extends StatelessWidget {
                             color: Colors.white,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 4),
-                            image: const DecorationImage(
-                              image: AssetImage(
-                                'assets/images/placeholder_avatar.png',
-                              ), // Placeholder
-                              fit: BoxFit.cover,
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              PhosphorIconsFill.userCircle,
+                              size: 130,
+                              color: AppColors.primaryOrange,
                             ),
                           ),
                         ),

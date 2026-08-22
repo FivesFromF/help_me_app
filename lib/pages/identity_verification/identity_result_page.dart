@@ -4,9 +4,16 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class IdentityResultPage extends StatelessWidget {
-  final Map<String, dynamic> data;
+  final Map<dynamic, dynamic> data;
 
   const IdentityResultPage({super.key, required this.data});
+
+  static Map<String, dynamic> _toMap(dynamic value) {
+    if (value is Map) {
+      return value.map<String, dynamic>((k, v) => MapEntry(k.toString(), v));
+    }
+    return <String, dynamic>{};
+  }
 
   Future<void> _makeCall(String phoneNumber) async {
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
@@ -17,9 +24,10 @@ class IdentityResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profile = (data['citizen'] ?? data['victim'] ?? data['profile'] ?? {}) as Map<String, dynamic>;
-    final medical = (data['record'] ?? data['medicalRecord'] ?? {}) as Map<String, dynamic>;
-    final dynamic rawContacts = profile['emergencyContacts'] ?? profile['emergency_contacts'] ?? data['emergencyContacts'] ?? data['contacts'];
+    final rootData = _toMap(data);
+    final profile = _toMap(rootData['citizen'] ?? rootData['victim'] ?? rootData['profile']);
+    final medical = _toMap(rootData['record'] ?? rootData['medicalRecord'] ?? profile['medicalRecord']);
+    final dynamic rawContacts = profile['emergencyContacts'] ?? profile['emergency_contacts'] ?? rootData['emergencyContacts'] ?? rootData['contacts'];
     final List<dynamic> contacts = rawContacts is List ? rawContacts : [];
 
     return Scaffold(
@@ -383,9 +391,12 @@ class IdentityResultPage extends StatelessWidget {
                 // Placeholder for Video Call
               },
               icon: const Icon(PhosphorIconsFill.videoCamera, size: 28),
-              label: const Text(
-                'Video call Tổng đài hỗ trợ',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+              label: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Video call Tổng đài hỗ trợ',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryOrange,
