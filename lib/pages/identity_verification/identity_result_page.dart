@@ -364,7 +364,32 @@ class IdentityResultPage extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 🚨 Primary Action Button: "Gửi yêu cầu khẩn cấp"
+          Row(
+            children: [
+              Expanded(
+                child: _buildSecondaryButton(
+                  icon: PhosphorIconsFill.phoneCall,
+                  label: 'Gọi 114',
+                  color: const Color(0xFF10B981),
+                  onTap: () => _makeCall('114'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSecondaryButton(
+                  icon: PhosphorIconsFill.usersThree,
+                  label: 'Người thân',
+                  color: const Color(0xFF10B981),
+                  onTap: () {
+                    // Navigate to emergency contacts sub-page or show bottom sheet
+                    _showContactsSheet(context, contacts);
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 🚨 Emergency Action Button: "Gửi yêu cầu khẩn cấp"
           SizedBox(
             width: double.infinity,
             height: 60,
@@ -392,31 +417,6 @@ class IdentityResultPage extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSecondaryButton(
-                  icon: PhosphorIconsFill.phoneCall,
-                  label: 'Gọi 114',
-                  color: const Color(0xFF10B981),
-                  onTap: () => _makeCall('114'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSecondaryButton(
-                  icon: PhosphorIconsFill.usersThree,
-                  label: 'Người thân',
-                  color: const Color(0xFF10B981),
-                  onTap: () {
-                    // Navigate to emergency contacts sub-page or show bottom sheet
-                    _showContactsSheet(context, contacts);
-                  },
-                ),
-              ),
-            ],
           ),
           const SizedBox(height: 12),
           SizedBox(
