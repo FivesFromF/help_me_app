@@ -58,25 +58,39 @@ class AuthService {
 
       // Backend tự động đồng bộ user qua Cognito Trigger. 
       // Chỉ cần gọi GET Profile để lấy thông tin mới nhất.
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/v1/read/citizen/profile'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $accessToken',
-        },
-      );
-
       Map<String, dynamic> data = {'role': 'citizen'};
-      if (response.statusCode == 200) {
-        final profileData = jsonDecode(response.body);
-        final profile = profileData['profile'] ?? {};
-        if (email.isNotEmpty && (profile['email'] == null || profile['email'].toString().isEmpty)) {
-          profile['email'] = email;
+      try {
+        final response = await http
+            .get(
+              Uri.parse('$_baseUrl/api/v1/read/citizen/profile'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $accessToken',
+              },
+            )
+            .timeout(const Duration(seconds: 8));
+
+        if (response.statusCode == 200) {
+          final profileData = jsonDecode(response.body);
+          final profile = profileData['profile'] ?? {};
+          if (email.isNotEmpty &&
+              (profile['email'] == null ||
+                  profile['email'].toString().isEmpty)) {
+            profile['email'] = email;
+          }
+          data['profile'] = profile;
+          data['citizen'] = profile;
+        } else {
+          final skeleton = {
+            'email': email,
+            'firstDeclareProfile': false,
+            'consentRegulation': false,
+          };
+          data['profile'] = skeleton;
+          data['citizen'] = skeleton;
         }
-        data['profile'] = profile;
-        data['citizen'] = profile;
-      } else {
-        // First login / unseeded fallback
+      } catch (e) {
+        safePrint('Profile fetch network note: $e');
         final skeleton = {
           'email': email,
           'firstDeclareProfile': false,

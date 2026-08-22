@@ -20,17 +20,22 @@ class _SignInPageState extends State<SignInPage> {
     try {
       final res = await AuthService.signInWithGoogle();
       if (mounted) {
-        final Map<String, dynamic> citizen = (res['citizen'] ?? res['profile'] ?? {}) as Map<String, dynamic>;
-        final bool firstDeclare = citizen['firstDeclareProfile'] ??
-            citizen['first_declare_profile'] ??
-            false;
-        final bool consent = citizen['consentRegulation'] ??
-            citizen['consent_regulation'] ??
-            false;
+        final Map<String, dynamic> citizen =
+            (res['citizen'] ?? res['profile'] ?? {}) as Map<String, dynamic>;
 
-        if (!firstDeclare) {
+        final bool isProfileDone = citizen['firstDeclareProfile'] == true ||
+            citizen['first_declare_profile'] == true ||
+            citizen['isProfileUpdated'] == true ||
+            citizen['is_profile_updated'] == true ||
+            (citizen['fullName'] != null &&
+                citizen['fullName'].toString().trim().isNotEmpty);
+
+        final bool hasConsent = citizen['consentRegulation'] == true ||
+            citizen['consent_regulation'] == true;
+
+        if (!isProfileDone) {
           context.go('/auth/sign-up');
-        } else if (!consent) {
+        } else if (!hasConsent) {
           context.go('/privacy?consent=true');
         } else {
           context.go('/home');

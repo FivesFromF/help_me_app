@@ -34,18 +34,21 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
           final res = await AuthService.fetchAndCacheProfile();
           final citizen = res['citizen'] ?? res['profile'] ?? {};
 
-          final bool firstDeclare = citizen['firstDeclareProfile'] ??
-              citizen['first_declare_profile'] ??
-              false;
-          final bool consent = citizen['consentRegulation'] ??
-              citizen['consent_regulation'] ??
-              false;
+          final bool isProfileDone = citizen['firstDeclareProfile'] == true ||
+              citizen['first_declare_profile'] == true ||
+              citizen['isProfileUpdated'] == true ||
+              citizen['is_profile_updated'] == true ||
+              (citizen['fullName'] != null &&
+                  citizen['fullName'].toString().trim().isNotEmpty);
+
+          final bool hasConsent = citizen['consentRegulation'] == true ||
+              citizen['consent_regulation'] == true;
 
           if (!mounted) return;
 
-          if (!firstDeclare) {
+          if (!isProfileDone) {
             context.go('/auth/sign-up');
-          } else if (!consent) {
+          } else if (!hasConsent) {
             context.go('/privacy?consent=true');
           } else {
             context.go('/home');
