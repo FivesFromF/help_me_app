@@ -38,10 +38,14 @@ class AuthService {
         throw Exception('Đăng nhập không thành công');
       }
 
-      final session = await Amplify.Auth.fetchAuthSession(
-        options: const FetchAuthSessionOptions(forceRefresh: true),
-      ) as CognitoAuthSession;
-      final accessToken = session.userPoolTokensResult.value.accessToken.raw;
+      String accessToken = '';
+      if (session is CognitoAuthSession) {
+        try {
+          accessToken = session.userPoolTokensResult.value.accessToken.raw;
+        } catch (e) {
+          safePrint('Tokens not available directly from session: $e');
+        }
+      }
 
       String email = '';
       try {
