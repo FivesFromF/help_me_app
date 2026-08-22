@@ -23,7 +23,8 @@ dependencies:
   amplify_auth_cognito: ^2.0.0
 
   # Hardware
-  nfc_manager: ^3.3.0
+  flutter_nfc_kit: ^3.6.2
+  ndef: ^0.4.0
   mobile_scanner: ^7.2.0
   qr_flutter: ^4.1.0
   camera: ^0.11.0+2

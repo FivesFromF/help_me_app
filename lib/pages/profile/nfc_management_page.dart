@@ -330,115 +330,80 @@ class _NfcScanWorkflowState extends State<_NfcScanWorkflow> {
 
   Future<void> _startActivation() async {
     debugPrint('NfcWorkflow: Starting activation process...');
-    await NfcService.startSession(
-      onTag: (tag) async {
-        // 1. Lấy UID
-        final uid = NfcService.getTagUid(tag);
-        debugPrint('NfcWorkflow: Tag detected, UID = $uid');
-        if (uid == null) {
-          setState(() {
-            _status = 'ERROR';
-            _message = 'Không thể nhận diện định dạng thẻ này.';
-          });
-          return;
-        }
+    setState(() {
+      _status = 'SCANNING_UID';
+      _message = 'Áp thẻ vào gần cảm biến NFC của điện thoại...';
+      _errorMessage = null;
+    });
 
-        // 2. Kiểm tra xem có đang chờ ghi hay không (Retry write)
-        if (_status == 'WRITING_RETRY' && _pendingHashedId != null) {
-           debugPrint('NfcWorkflow: Retrying write for hashedId: $_pendingHashedId');
-           setState(() {
-             _status = 'WRITING';
-             _message = 'Đang ghi lại mã bảo mật...';
-           });
-           
-           try {
-             final success = await NfcService.writeNdef(tag, _pendingHashedId!);
-             if (success) {
-                _onWriteSuccess();
-             } else {
-                setState(() {
-                  _status = 'WRITING_RETRY';
-                  _message = 'Thẻ không hỗ trợ ghi dữ liệu. Vui lòng thử thẻ khác.';
-                });
-             }
-           } catch (e) {
-             debugPrint('NfcWorkflow: Retry write failed: $e');
-             setState(() {
-               _status = 'WRITING_RETRY';
-               _message = 'Vẫn chưa ghi được. Vui lòng CHẠM GIỮ THẺ lâu hơn một chút...';
-             });
-           }
-           return; // <--- QUAN TRỌNG: Phải thoát ở đây để không Link lại
-        }
+    final uid = await NfcService.readTagUid();
+    if (!mounted) return;
 
-        // 3. Link Backend (Flow bình thường)
-        debugPrint('NfcWorkflow: Linking tag $uid with backend...');
-        setState(() {
-          _status = 'LINKING';
-          _message = 'Đang đồng bộ với hệ thống...';
-        });
+    if (uid == null) {
+      setState(() {
+        _status = 'ERROR';
+        _message = 'Không đọc được mã thẻ hoặc phiên đã kết thúc.';
+      });
+      return;
+    }
 
-        try {
-          final res = await AuthService.linkNFCTag(uid, 'Thẻ NFC');
-          final String? hashedId = res['hashIdToBurn'] ?? res['hashedCitizenId'];
-          if (hashedId == null) {
-            throw Exception('Không nhận được mã hash từ máy chủ.');
-          }
-          _pendingHashedId = hashedId;
-          debugPrint('NfcWorkflow: Linked successfully. Received HashedId: $hashedId');
+    // Link with backend
+    setState(() {
+      _status = 'LINKING';
+      _message = 'Đang đồng bộ với hệ thống...';
+    });
 
-          // 4. Ghi thẻ
-          setState(() {
-            _status = 'WRITING';
-            _message =
-                'Hệ thống đã nhận diện thành công!\nVui lòng GIỮ THẺ để ghi mã bảo mật...';
-          });
+    try {
+      final res = await AuthService.linkNFCTag(uid, 'Thẻ NFC');
+      final String? hashedId = res['hashIdToBurn'] ?? res['hashedCitizenId'];
+      if (hashedId == null || hashedId.isEmpty) {
+        throw Exception('Không nhận được mã hash từ máy chủ.');
+      }
+      _pendingHashedId = hashedId;
+      debugPrint('NfcWorkflow: Linked successfully. Received HashedId: $hashedId');
 
-          debugPrint('NfcWorkflow: Writing HashedId to tag...');
-          try {
-            final success = await NfcService.writeNdef(tag, hashedId);
-            if (success) {
-              _onWriteSuccess();
-            } else {
-              throw Exception('Hỗ trợ ghi NDEF thất bại.');
-            }
-          } catch (e) {
-            debugPrint('NfcWorkflow: Write failed with: $e. Transitioning to WRITING_RETRY.');
-            setState(() {
-              _status = 'WRITING_RETRY';
-              _message = 'Mất kết nối đột ngột!\nVui lòng CHẠM LẠI THẺ để hoàn tất.';
-            });
-            // Don't stop session here, we want it to stay active for the retry if possible, 
-            // but usually nfc_manager stops it on error. 
-            // So we'll restart it if needed in the build/retry button or automatically.
-          }
-        } catch (e) {
-          debugPrint('NfcWorkflow: Error during workflow: $e');
-          setState(() {
-            _status = 'ERROR';
-            _message = 'Lỗi xử lý';
-            _errorMessage = e.toString();
-          });
-          await NfcService.stopSession(errorMessage: e.toString());
-        }
-      },
-      onError: (error) async {
-        debugPrint('NfcWorkflow: Session error: $error');
-        // If we were writing and it failed, we might already handled it in onTag,
-        // but if the session itself failed...
-        if (_status == 'WRITING' || _status == 'WRITING_RETRY') {
-           // Keep the status as WRITING_RETRY, but restart session if needed
-           debugPrint('NfcWorkflow: Session lost during write. Ready for retry.');
-           return; 
-        }
-        
+      // Write tag
+      await _writePendingTag();
+    } catch (e) {
+      debugPrint('NfcWorkflow: Error during workflow: $e');
+      if (mounted) {
         setState(() {
           _status = 'ERROR';
-          _message = 'Lỗi NFC';
-          _errorMessage = error;
+          _message = 'Lỗi xử lý';
+          _errorMessage = e.toString();
         });
-      },
-    );
+      }
+    }
+  }
+
+  Future<void> _writePendingTag() async {
+    if (_pendingHashedId == null) return;
+    setState(() {
+      _status = 'WRITING';
+      _message = 'Hệ thống đã liên kết thẻ!\nVui lòng CHẠM LẠI THẺ để ghi mã bảo mật...';
+    });
+
+    try {
+      final success = await NfcService.writeNdef(_pendingHashedId!);
+      if (!mounted) return;
+
+      if (success) {
+        _onWriteSuccess();
+      } else {
+        setState(() {
+          _status = 'WRITING_RETRY';
+          _message = 'Ghi thẻ chưa thành công.\nVui lòng CHẠM LẠI THẺ để thử lại.';
+        });
+      }
+    } catch (e) {
+      debugPrint('NfcWorkflow: Write error: $e');
+      if (mounted) {
+        setState(() {
+          _status = 'WRITING_RETRY';
+          _message = 'Mất kết nối đột ngột.\nVui lòng CHẠM LẠI THẺ để hoàn tất.';
+        });
+      }
+    }
   }
 
   Future<void> _onWriteSuccess() async {
@@ -448,7 +413,6 @@ class _NfcScanWorkflowState extends State<_NfcScanWorkflow> {
       _message = 'Kích hoạt thẻ thành công!';
       _errorMessage = null;
     });
-    await NfcService.stopSession();
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) widget.onSuccess();
   }

@@ -41,15 +41,7 @@ class _IdentityScanPageState extends State<IdentityScanPage>
   }
 
   Future<void> _startNfcSession() async {
-    debugPrint('IdentityScanPage: _startNfcSession called');
-
-    // Safety: ensure any existing session is stopped
-    await NfcService.stopSession();
-
-    debugPrint('IdentityScanPage: Checking NFC availability...');
     final available = await NfcService.isAvailable();
-    debugPrint('IdentityScanPage: NFC availability = $available');
-
     if (!available) {
       if (mounted) {
         setState(() {
@@ -60,57 +52,67 @@ class _IdentityScanPageState extends State<IdentityScanPage>
       return;
     }
 
-    debugPrint('IdentityScanPage: Calling NfcService.startSession...');
-    await NfcService.startSession(
-      onTag: (tag) async {
-        if (!_isScanning) return;
+    if (!mounted) return;
+    setState(() {
+      _isScanning = true;
+      _statusMessage = 'Đang chờ quét thẻ...';
+    });
 
-        setState(() => _statusMessage = 'Đang đọc dữ liệu thẻ...');
+    final cardData = await NfcService.readCardData(
+      iosAlertMessage: 'Đưa thẻ NFC lại gần để xác thực danh tính.',
+    );
 
-        // 1. Read Identifier and HashedID
-        final uid = NfcService.getTagUid(tag);
-        final hashedId = await NfcService.readNdef(tag);
-
-        if (hashedId == null) {
-          setState(
-            () => _statusMessage = 'Thẻ không chứa dữ liệu HelpMe hợp lệ.',
-          );
-          return;
-        }
-
+    if (cardData == null) {
+      if (mounted) {
         setState(() {
           _isScanning = false;
-          _statusMessage = 'Đang xác thực thông tin...';
+          _statusMessage = 'Không đọc được thẻ hoặc thẻ bị ngắt kết nối. Vui lòng quét lại.';
         });
+      }
+      return;
+    }
 
-        try {
-          final result = await AuthService.verifyIdentity(
-            nfcId: uid,
-            hashedCitizenId: hashedId,
-          );
+    final uid = cardData.uid;
+    final hashedId = cardData.hashedId;
 
-          if (mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => IdentityResultPage(data: result),
-              ),
-            );
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _isScanning = true;
-              _statusMessage = 'Lỗi xác thực: $e\nVui lòng thử lại.';
-            });
-          }
-        }
-      },
-      onError: (err) {
-        if (mounted) {
-          setState(() => _statusMessage = 'Lỗi NFC: $err');
-        }
-      },
-    );
+    if (hashedId == null || hashedId.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+          _statusMessage = 'Thẻ không chứa dữ liệu HelpMe hợp lệ.';
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isScanning = false;
+        _statusMessage = 'Đang xác thực thông tin...';
+      });
+    }
+
+    try {
+      final result = await AuthService.verifyIdentity(
+        nfcId: uid,
+        hashedCitizenId: hashedId,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => IdentityResultPage(data: result),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+          _statusMessage = 'Lỗi xác thực: $e\nVui lòng thử lại.';
+        });
+      }
+    }
   }
 
   @override
