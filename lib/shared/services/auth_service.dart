@@ -38,6 +38,10 @@ class AuthService {
         throw Exception('Đăng nhập không thành công');
       }
 
+      final session = await Amplify.Auth.fetchAuthSession(
+        options: const FetchAuthSessionOptions(forceRefresh: true),
+      );
+
       String accessToken = '';
       if (session is CognitoAuthSession) {
         try {
