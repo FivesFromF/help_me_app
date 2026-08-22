@@ -20,37 +20,21 @@ class _SignInPageState extends State<SignInPage> {
     try {
       final res = await AuthService.signInWithGoogle();
       if (mounted) {
-        // Kiểm tra xem user đã hoàn thiện profile chưa
-        // Nếu fullName vẫn là email hoặc rỗng (do tự động provision)
-        // Hoặc dựa vào một flag trong profile trả về
-        final citizen = res['citizen'];
-          print('SignInPage: Profile data: $citizen');
-          if (citizen != null) {
-            final bool firstDeclare =
-                citizen['firstDeclareProfile'] ??
-                citizen['first_declare_profile'] ??
-                false;
-            final bool consent =
-                citizen['consentRegulation'] ??
-                citizen['consent_regulation'] ??
-                false;
+        final Map<String, dynamic> citizen = (res['citizen'] ?? res['profile'] ?? {}) as Map<String, dynamic>;
+        final bool firstDeclare = citizen['firstDeclareProfile'] ??
+            citizen['first_declare_profile'] ??
+            false;
+        final bool consent = citizen['consentRegulation'] ??
+            citizen['consent_regulation'] ??
+            false;
 
-            print('SignInPage: firstDeclare=$firstDeclare, consent=$consent');
-
-            if (!firstDeclare) {
-              print('SignInPage: Redirecting to /auth/sign-up');
-              context.go('/auth/sign-up');
-            } else if (!consent) {
-              print('SignInPage: Redirecting to /privacy');
-              context.go('/privacy?consent=true');
-            } else {
-              print('SignInPage: Redirecting to /home');
-              context.go('/home');
-            }
-          } else {
-            print('SignInPage: Citizen is null, redirecting to sign-up');
-            context.go('/auth/sign-up');
-          }
+        if (!firstDeclare) {
+          context.go('/auth/sign-up');
+        } else if (!consent) {
+          context.go('/privacy?consent=true');
+        } else {
+          context.go('/home');
+        }
       }
     } catch (e) {
       if (mounted) {

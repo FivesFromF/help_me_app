@@ -184,9 +184,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
   Future<void> _loadProfile() async {
     final profile = await AuthService.getCachedProfile();
-    if (profile != null && profile['citizen'] != null) {
-      final citizen = profile['citizen'];
-      
+    final citizen = profile != null ? (profile['citizen'] ?? profile['profile']) : null;
+    if (citizen != null) {
       // Safety check: if flags are false, kick back to splash to decide where to go
       final bool firstDeclare = citizen['firstDeclareProfile'] ?? citizen['first_declare_profile'] ?? false;
       final bool consent = citizen['consentRegulation'] ?? citizen['consent_regulation'] ?? false;

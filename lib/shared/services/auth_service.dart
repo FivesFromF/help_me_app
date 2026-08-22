@@ -27,7 +27,7 @@ class AuthService {
         provider: AuthProvider.google,
         options: const SignInWithWebUIOptions(
           pluginOptions: CognitoSignInWithWebUIPluginOptions(
-            isPreferPrivateSession: true, 
+            isPreferPrivateSession: false, // Allows selecting already signed-in Google accounts from the browser
           ),
         ),
       );
@@ -54,10 +54,17 @@ class AuthService {
       Map<String, dynamic> data = {'role': 'citizen'};
       if (response.statusCode == 200) {
         final profileData = jsonDecode(response.body);
-        data['profile'] = profileData['profile'];
+        final profile = profileData['profile'] ?? {};
+        data['profile'] = profile;
+        data['citizen'] = profile;
       } else {
-        // First login fallback
-        data['profile'] = {};
+        // First login / unseeded fallback
+        final skeleton = {
+          'firstDeclareProfile': false,
+          'consentRegulation': false,
+        };
+        data['profile'] = skeleton;
+        data['citizen'] = skeleton;
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -247,6 +254,9 @@ class AuthService {
 
   static Future<Map<String, dynamic>> fetchAndCacheProfile() async {
     final token = await getAccessToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Chưa đăng nhập');
+    }
     final response = await http.get(
       Uri.parse('$_baseUrl/api/v1/read/citizen/profile'),
       headers: {
@@ -255,22 +265,34 @@ class AuthService {
       },
     );
 
+    final prefs = await SharedPreferences.getInstance();
+    final currentRaw = prefs.getString('profile');
+    final current = currentRaw != null
+        ? jsonDecode(currentRaw) as Map<String, dynamic>
+        : <String, dynamic>{};
+
     if (response.statusCode == 200) {
       final resData = jsonDecode(response.body);
-      final profile = resData['profile'];
-      if (profile != null) {
-        final prefs = await SharedPreferences.getInstance();
-        final currentRaw = prefs.getString('profile');
-        final current = currentRaw != null
-            ? jsonDecode(currentRaw) as Map<String, dynamic>
-            : <String, dynamic>{};
-        final merged = <String, dynamic>{
-          ...current,
-          'citizen': profile,
-        };
-        await prefs.setString('profile', jsonEncode(merged));
-      }
-      return resData;
+      final profile = resData['profile'] ?? {};
+      final merged = <String, dynamic>{
+        ...current,
+        'citizen': profile,
+        'profile': profile,
+      };
+      await prefs.setString('profile', jsonEncode(merged));
+      return {'profile': profile, 'citizen': profile};
+    } else if (response.statusCode == 404) {
+      final skeleton = <String, dynamic>{
+        'firstDeclareProfile': false,
+        'consentRegulation': false,
+      };
+      final merged = <String, dynamic>{
+        ...current,
+        'citizen': skeleton,
+        'profile': skeleton,
+      };
+      await prefs.setString('profile', jsonEncode(merged));
+      return {'profile': skeleton, 'citizen': skeleton};
     }
     throw Exception('Lỗi lấy thông tin hồ sơ: ${response.body}');
   }
