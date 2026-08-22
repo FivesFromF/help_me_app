@@ -230,55 +230,6 @@ class AuthService {
   }
 
   // =============================================
-  // Staff/Admin: Sign In (Email + Password)
-  // =============================================
-
-  static Future<Map<String, dynamic>> staffSignIn(
-    String email,
-    String password,
-  ) async {
-    try {
-      // Backend TS không hỗ trợ endpoint /signin.
-      // Dùng trực tiếp Amplify Auth để xác thực qua Cognito.
-      final result = await Amplify.Auth.signIn(
-        username: email,
-        password: password,
-      );
-
-      if (!result.isSignedIn) {
-        throw Exception('Đăng nhập chưa hoàn tất');
-      }
-
-      final session = await Amplify.Auth.fetchAuthSession() as CognitoAuthSession;
-      final accessToken = session.userPoolTokensResult.value.accessToken.raw;
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', accessToken);
-      await prefs.setString('role', 'staff'); 
-      
-      final data = {'role': 'staff', 'accessToken': accessToken};
-      await prefs.setString('profile', jsonEncode(data));
-      return data;
-    } catch (e) {
-      throw Exception('Đăng nhập thất bại: $e');
-    }
-  }
-
-  // =============================================
-  // Admin API helpers (Chưa triển khai ở TS Backend)
-  // =============================================
-
-  static Future<Map<String, dynamic>> getSystemStats() async {
-    throw Exception('API getSystemStats chưa được hỗ trợ ở Backend TS');
-  }
-
-  static Future<Map<String, dynamic>> registerStaff(
-    Map<String, dynamic> staffData,
-  ) async {
-    throw Exception('API registerStaff chưa được hỗ trợ ở Backend TS');
-  }
-
-  // =============================================
   // Citizen: NFC Management
   // =============================================
 

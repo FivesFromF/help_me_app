@@ -201,7 +201,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
                     const SizedBox(height: 20),
                     const _SectionTitle('8. Bảo mật dữ liệu'),
                     const _BodyText(
-                      'Chúng tôi áp dụng các biện pháp bảo mật gồm: mã hoá dữ liệu truyền tải và lưu trữ, kiểm soát truy cập theo vai trò (Citizen / Healthcare Staff / Admin), giám sát và ghi log toàn bộ lượt truy cập hồ sơ, và hệ thống phát hiện xâm nhập.',
+                      'Chúng tôi áp dụng các biện pháp bảo mật gồm: mã hoá dữ liệu truyền tải và lưu trữ, kiểm soát truy cập theo vai trò (Citizen / Admin), giám sát và ghi log toàn bộ lượt truy cập hồ sơ, và hệ thống phát hiện xâm nhập.',
                     ),
                     const SizedBox(height: 20),
                     const _SectionTitle('9. Thay đổi chính sách'),

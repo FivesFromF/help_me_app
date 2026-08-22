@@ -1,7 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:help_me_app/pages/auth/sign_in/sign_in_page.dart';
 import 'package:help_me_app/pages/auth/sign_up/citizen_basic_info_page.dart';
-import 'package:help_me_app/pages/auth/sign_in/staff_sign_in_page.dart';
 import '../pages/home/splash_screen_page.dart';
 import '../pages/home/home_page.dart';
 import '../pages/details_page.dart';
@@ -20,10 +19,6 @@ final router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreenPage()),
     GoRoute(path: '/sign-in', builder: (context, state) => const SignInPage()),
-    GoRoute(
-      path: '/auth/staff-sign-in',
-      builder: (context, state) => const StaffSignInPage(),
-    ),
 
     // Màn hình hoàn thiện hồ sơ cơ bản (Citizen Basic Info - Single Page)
     GoRoute(

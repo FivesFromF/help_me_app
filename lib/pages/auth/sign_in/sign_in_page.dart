@@ -68,12 +68,6 @@ class _SignInPageState extends State<SignInPage> {
     }
   }
 
-  bool _isEmpty(dynamic value) {
-    if (value == null) return true;
-    if (value is String) return value.trim().isEmpty;
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -275,37 +269,7 @@ class _SignInPageState extends State<SignInPage> {
                           ),
                         ),
 
-                        const SizedBox(height: 40),
-                        // Footer Links
-                        Column(
-                          children: [
-                            // GestureDetector(
-                            //   onTap: () => context.go('/auth/sign-up'),
-                            //   child: const Text(
-                            //     'Bạn chưa có tài khoản? Đăng ký tại đây!',
-                            //     style: TextStyle(
-                            //       color: AppColors.primaryGreen,
-                            //       fontWeight: FontWeight.w600,
-                            //       fontSize: 14,
-                            //       decoration: TextDecoration.underline,
-                            //     ),
-                            //   ),
-                            // ),
-                            const SizedBox(height: 16),
-                            GestureDetector(
-                              onTap: () => context.push('/auth/staff-sign-in'),
-                              child: const Text(
-                                'Bạn là nhân viên y tế? Đăng nhập tại đây!',
-                                style: TextStyle(
-                                  color: AppColors.primaryGreen,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
