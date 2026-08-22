@@ -242,31 +242,32 @@ class IdentityResultPage extends StatelessWidget {
 
   Widget _buildIdentityRow(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFEDEDED))),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF8A8A8A),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF8A8A8A),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              value,
+              value.isNotEmpty ? value : 'Chưa rõ',
               textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: AppColors.primaryBlack,
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
           ),
