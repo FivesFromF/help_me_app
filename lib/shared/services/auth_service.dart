@@ -27,11 +27,6 @@ class AuthService {
     try {
       final result = await Amplify.Auth.signInWithWebUI(
         provider: AuthProvider.google,
-        options: const SignInWithWebUIOptions(
-          pluginOptions: CognitoSignInWithWebUIPluginOptions(
-            isPreferPrivateSession: false, // Allows selecting already signed-in Google accounts from the browser
-          ),
-        ),
       );
 
       if (!result.isSignedIn) {
