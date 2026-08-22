@@ -380,13 +380,13 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
                   child: Container(
                     width: 50,
                     height: 50,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryOrange.withValues(alpha: 0.2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.close,
-                      color: Colors.white,
+                      color: AppColors.primaryOrange,
                       size: 26,
                     ),
                   ),
