@@ -645,20 +645,24 @@ class IdentityResultPage extends StatelessWidget {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          isLocating
-                                              ? 'Đang lấy vị trí GPS thực tế...'
-                                              : (currentLocation?.isRealGps == true
-                                                  ? 'Vị trí GPS thời gian thực'
-                                                  : 'Vị trí dự phòng (GPS tắt)'),
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 14,
-                                            color: isLocating
-                                                ? const Color(0xFF0369A1)
+                                        Flexible(
+                                          child: Text(
+                                            isLocating
+                                                ? 'Đang lấy vị trí GPS thực tế...'
                                                 : (currentLocation?.isRealGps == true
-                                                    ? const Color(0xFF15803D)
-                                                    : const Color(0xFFB45309)),
+                                                    ? 'Vị trí GPS thời gian thực'
+                                                    : 'Vị trí dự phòng (GPS tắt)'),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                              color: isLocating
+                                                  ? const Color(0xFF0369A1)
+                                                  : (currentLocation?.isRealGps == true
+                                                      ? const Color(0xFF15803D)
+                                                      : const Color(0xFFB45309)),
+                                            ),
                                           ),
                                         ),
                                         if (currentLocation?.isRealGps == true && currentLocation?.accuracy != null) ...[
@@ -686,6 +690,8 @@ class IdentityResultPage extends StatelessWidget {
                                       isLocating
                                           ? 'Đang đồng bộ với vệ tinh định vị...'
                                           : 'Tọa độ: $latStr, $lonStr',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,

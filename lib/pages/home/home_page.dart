@@ -25,7 +25,6 @@ class _HomePageState extends State<HomePage> {
     const HomeDashboard(),
     const HomeDashboard(),
     const Center(child: Text('Lịch sử')),
-    const Center(child: Text('Tin tức')),
     const SettingsPage(),
   ];
 
@@ -113,10 +112,7 @@ class _CustomFloatingNavBar extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: _buildNavItem(3, PhosphorIconsRegular.article, 'Tin tức'),
-          ),
-          Expanded(
-            child: _buildNavItem(4, PhosphorIconsRegular.gear, 'Cài đặt'),
+            child: _buildNavItem(3, PhosphorIconsRegular.gear, 'Cài đặt'),
           ),
         ],
       ),
