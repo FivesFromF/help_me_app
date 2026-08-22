@@ -145,12 +145,15 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
       // Call API in background
       final result = await AuthService.searchByFace(faceImageB64: b64);
 
-      // If we reach here, a match was found!
-      _isProcessingMatch = true;
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => IdentityResultPage(data: result)),
-        );
+      if (result['matchStatus'] == 'MATCH_FOUND' ||
+          result['victim'] != null ||
+          result['citizen'] != null) {
+        _isProcessingMatch = true;
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => IdentityResultPage(data: result)),
+          );
+        }
       }
     } catch (e) {
       // No match or error, just continue scanning silently

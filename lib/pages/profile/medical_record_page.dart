@@ -124,24 +124,28 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
   Future<void> _save() async {
     setState(() => _isLoading = true);
     try {
-      final updateData = {
-        'fullName': _nameController.text,
-        'phone': _phoneController.text,
-        'dateOfBirth': _dobController.text,
+      final profileData = {
+        'fullName': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'dateOfBirth': _dobController.text.trim(),
         'gender': _gender,
-        'address': _addressController.text,
-        'cccdNumber': _cccdController.text,
-        'medicalRecord': {
-          'bloodGroup': _bloodGroup,
-          'distinguishingMarks': _marksController.text,
-          'allergies': _allergies,
-          'backgroundDiseases': _diseases,
-          'currentMedications': _medications,
-          'notes': _notesController.text,
-        },
+        'address': _addressController.text.trim(),
+        'cccdNumber': _cccdController.text.trim(),
       };
 
-      await AuthService.updateProfile(updateData);
+      final medicalData = {
+        'bloodGroup': _bloodGroup,
+        'distinguishingMarks': _marksController.text.trim(),
+        'allergies': _allergies,
+        'backgroundDiseases': _diseases,
+        'currentMedications': _medications,
+        'notes': _notesController.text.trim(),
+      };
+
+      await AuthService.updateProfile(profileData);
+      await AuthService.updateMedicalRecord(medicalData);
+      await _fetchData();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã cập nhật hồ sơ thành công')),
@@ -1434,12 +1438,13 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
 
             setState(() => _isLoading = true);
             try {
-              await AuthService.updateProfile({'faceImageB64': b64});
+              await AuthService.registerFace(b64);
               await _fetchData(); // Refresh profile
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Cập nhật ảnh đại diện thành công'),
+                    content: Text('Đăng ký sinh trắc học khuôn mặt thành công'),
+                    backgroundColor: Color(0xFF10B981),
                   ),
                 );
                 Navigator.pop(context);
@@ -1448,7 +1453,7 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
               if (mounted) {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+                ).showSnackBar(SnackBar(content: Text('Lỗi đăng ký khuôn mặt: $e')));
               }
             } finally {
               setState(() => _isLoading = false);

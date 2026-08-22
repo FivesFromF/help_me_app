@@ -119,7 +119,7 @@ class AuthService {
     Map<String, dynamic> data,
   ) async {
     final token = await getAccessToken();
-    final response = await http.post(
+    final response = await http.put(
       Uri.parse('$_baseUrl/api/v1/write/citizen/profile'),
       headers: {
         'Content-Type': 'application/json',
@@ -183,6 +183,10 @@ class AuthService {
     await updateProfile({'consentRegulation': true});
   }
 
+  // =============================================
+  // Citizen: Hồ sơ y tế (Medical Record)
+  // =============================================
+
   static Future<Map<String, dynamic>> getMedicalRecord() async {
     final token = await getAccessToken();
     final response = await http.get(
@@ -197,6 +201,48 @@ class AuthService {
       return jsonDecode(response.body);
     }
     throw Exception('Lỗi lấy hồ sơ y tế: ${response.body}');
+  }
+
+  static Future<Map<String, dynamic>> updateMedicalRecord(
+    Map<String, dynamic> data,
+  ) async {
+    final token = await getAccessToken();
+    final response = await http.put(
+      Uri.parse('$_baseUrl/api/v1/write/citizen/medical-record'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Lỗi cập nhật hồ sơ y tế: ${response.body}');
+  }
+
+  // =============================================
+  // Citizen: Đăng ký sinh trắc học khuôn mặt
+  // =============================================
+
+  static Future<Map<String, dynamic>> registerFace(String base64Image) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/v1/write/citizen/face'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'imageBase64': base64Image,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Lỗi đăng ký khuôn mặt: ${response.body}');
   }
 
   static Future<Map<String, dynamic>> fetchAndCacheProfile() async {
@@ -239,13 +285,13 @@ class AuthService {
   ) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$_baseUrl/api/v1/write/citizen/nfc-tags'),
+      Uri.parse('$_baseUrl/api/v1/write/nfc'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'nfcId': nfcId,
+        'tagId': nfcId,
         'name': name,
       }),
     );
@@ -355,5 +401,57 @@ class AuthService {
 
     final errorData = jsonDecode(response.body);
     throw Exception(errorData['error'] ?? 'Không tìm thấy thông tin nạn nhân');
+  }
+
+  // =============================================
+  // Emergency Incident Reporting - POST /api/v1/write/emergency/report
+  // =============================================
+
+  static Future<Map<String, dynamic>> reportEmergency({
+    String? victimId,
+    required String locationLat,
+    required String locationLon,
+    String? situationDescription,
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/v1/write/emergency/report'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        if (victimId != null) 'victimId': victimId,
+        'locationLat': locationLat,
+        'locationLon': locationLon,
+        if (situationDescription != null)
+          'situationDescription': situationDescription,
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Lỗi gửi báo cáo khẩn cấp: ${response.body}');
+  }
+
+  // =============================================
+  // Victim Re-Access - GET /api/v1/read/victim/:victimId
+  // =============================================
+
+  static Future<Map<String, dynamic>> getVictimSession(String victimId) async {
+    final token = await getAccessToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/v1/read/victim/$victimId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Lỗi truy cập hồ sơ nạn nhân: ${response.body}');
   }
 }

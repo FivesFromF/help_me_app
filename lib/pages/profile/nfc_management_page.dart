@@ -380,7 +380,10 @@ class _NfcScanWorkflowState extends State<_NfcScanWorkflow> {
 
         try {
           final res = await AuthService.linkNFCTag(uid, 'Thẻ NFC');
-          final hashedId = res['hashedCitizenId'];
+          final String? hashedId = res['hashIdToBurn'] ?? res['hashedCitizenId'];
+          if (hashedId == null) {
+            throw Exception('Không nhận được mã hash từ máy chủ.');
+          }
           _pendingHashedId = hashedId;
           debugPrint('NfcWorkflow: Linked successfully. Received HashedId: $hashedId');
 

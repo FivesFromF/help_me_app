@@ -17,9 +17,10 @@ class IdentityResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profile = data['profile'] ?? {};
-    final medical = data['medicalRecord'] ?? {};
-    final List<dynamic> contacts = data['emergencyContacts'] ?? [];
+    final profile = (data['citizen'] ?? data['victim'] ?? data['profile'] ?? {}) as Map<String, dynamic>;
+    final medical = (data['record'] ?? data['medicalRecord'] ?? {}) as Map<String, dynamic>;
+    final dynamic rawContacts = profile['emergencyContacts'] ?? profile['emergency_contacts'] ?? data['emergencyContacts'] ?? data['contacts'];
+    final List<dynamic> contacts = rawContacts is List ? rawContacts : [];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0F0),
