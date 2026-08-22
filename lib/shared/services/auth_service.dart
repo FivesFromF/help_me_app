@@ -20,14 +20,12 @@ class AuthService {
   static const String _baseUrl = Env.apiEndpoint;
 
   // =============================================
-  // Google Sign-In → Backend /profile
+  // AWS Cognito Hosted-UI Sign-In (WebUI Browser)
   // =============================================
 
-  static Future<Map<String, dynamic>> signInWithGoogle() async {
+  static Future<Map<String, dynamic>> signInWithCognito() async {
     try {
-      final result = await Amplify.Auth.signInWithWebUI(
-        provider: AuthProvider.google,
-      );
+      final result = await Amplify.Auth.signInWithWebUI();
 
       if (!result.isSignedIn) {
         throw Exception('Đăng nhập không thành công');
@@ -59,8 +57,6 @@ class AuthService {
         safePrint('Error fetching user attributes on signIn: $e');
       }
 
-      // Backend tự động đồng bộ user qua Cognito Trigger. 
-      // Chỉ cần gọi GET Profile để lấy thông tin mới nhất.
       Map<String, dynamic> data = {'role': 'citizen'};
       try {
         final response = await http
@@ -105,15 +101,17 @@ class AuthService {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', accessToken);
-      await prefs.setString('role', data['role']);
+      await prefs.setString('role', data['role'] ?? 'citizen');
       await prefs.setString('profile', jsonEncode(data));
 
       return data;
     } catch (e) {
-      safePrint('SignIn Error: $e');
+      safePrint('Cognito WebUI SignIn Error: $e');
       rethrow;
     }
   }
+
+  static Future<Map<String, dynamic>> signInWithGoogle() => signInWithCognito();
 
   // =============================================
   // Lấy Email của người dùng hiện tại
