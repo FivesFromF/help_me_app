@@ -22,11 +22,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomeDashboard(),
-    const HomeDashboard(),
-    const HistoryPage(),
-    const SettingsPage(),
+  List<Widget> get _pages => const [
+    HomeDashboard(),
+    HomeDashboard(),
+    HistoryPage(),
+    SettingsPage(),
   ];
 
   Future<void> _onNavItemSelected(int index) async {
@@ -51,17 +51,18 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final int safeIndex = _selectedIndex >= _pages.length ? 0 : _selectedIndex;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          _pages[_selectedIndex],
+          _pages[safeIndex],
           Positioned(
             left: 24,
             right: 24,
             bottom: 30,
             child: _CustomFloatingNavBar(
-              selectedIndex: _selectedIndex,
+              selectedIndex: safeIndex,
               onItemSelected: _onNavItemSelected,
             ),
           ),
