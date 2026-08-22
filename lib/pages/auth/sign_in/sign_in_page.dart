@@ -177,19 +177,19 @@ class _SignInPageState extends State<SignInPage> {
                                     children: [
                                       const Expanded(
                                         child: Text(
-                                          'Đăng nhập qua AWS Cognito',
+                                          'Đăng nhập bằng Google',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: AppColors.primaryBlack,
                                             fontSize: 16,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ),
                                       SvgPicture.network(
                                         'https://www.vectorlogo.zone/logos/google/google-icon.svg',
-                                        width: 22,
-                                        height: 22,
+                                        width: 24,
+                                        height: 24,
                                       ),
                                     ],
                                   ),
