@@ -30,12 +30,16 @@ class _CitizenBasicInfoPageState extends State<CitizenBasicInfoPage> {
   }
 
   Future<void> _loadInitialData() async {
-    final profileData = await AuthService.getCachedProfile();
-    if (profileData != null && profileData['citizen'] != null) {
-      final citizen = profileData['citizen'];
+    String? email = await AuthService.getUserEmail();
+    if (email == null || email.isEmpty) {
+      final profileData = await AuthService.getCachedProfile();
+      final citizen = profileData?['citizen'] ?? profileData?['profile'];
+      email = citizen?['email'];
+    }
+
+    if (mounted && email != null && email.isNotEmpty) {
       setState(() {
-        // We only pre-fill email, Name is left for user to type manually
-        _emailController.text = citizen['email'] ?? '';
+        _emailController.text = email!;
       });
     }
   }

@@ -41,6 +41,19 @@ class AuthService {
       ) as CognitoAuthSession;
       final accessToken = session.userPoolTokensResult.value.accessToken.raw;
 
+      String email = '';
+      try {
+        final attributes = await Amplify.Auth.fetchUserAttributes();
+        for (final attr in attributes) {
+          if (attr.userAttributeKey == AuthUserAttributeKey.email) {
+            email = attr.value;
+            break;
+          }
+        }
+      } catch (e) {
+        safePrint('Error fetching user attributes on signIn: $e');
+      }
+
       // Backend tự động đồng bộ user qua Cognito Trigger. 
       // Chỉ cần gọi GET Profile để lấy thông tin mới nhất.
       final response = await http.get(
@@ -55,11 +68,15 @@ class AuthService {
       if (response.statusCode == 200) {
         final profileData = jsonDecode(response.body);
         final profile = profileData['profile'] ?? {};
+        if (email.isNotEmpty && (profile['email'] == null || profile['email'].toString().isEmpty)) {
+          profile['email'] = email;
+        }
         data['profile'] = profile;
         data['citizen'] = profile;
       } else {
         // First login / unseeded fallback
         final skeleton = {
+          'email': email,
           'firstDeclareProfile': false,
           'consentRegulation': false,
         };
@@ -77,6 +94,25 @@ class AuthService {
       safePrint('SignIn Error: $e');
       rethrow;
     }
+  }
+
+  // =============================================
+  // Lấy Email của người dùng hiện tại
+  // =============================================
+
+  static Future<String?> getUserEmail() async {
+    try {
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      for (final attr in attributes) {
+        if (attr.userAttributeKey == AuthUserAttributeKey.email) {
+          return attr.value;
+        }
+      }
+    } catch (e) {
+      safePrint('Error fetching user email: $e');
+    }
+    final profile = await getCachedProfile();
+    return profile?['citizen']?['email'] ?? profile?['profile']?['email'];
   }
 
   // =============================================
