@@ -637,4 +637,31 @@ class AuthService {
     final errorData = jsonDecode(response.body);
     throw Exception(errorData['error'] ?? 'Lỗi tải lịch sử hoạt động');
   }
+
+  // =============================================
+  // Access Complaint - POST /api/v1/write/access/:sessionId/complain
+  // =============================================
+
+  static Future<Map<String, dynamic>> submitAccessComplaint(
+    String sessionId, {
+    String? reason,
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/v1/write/access/$sessionId/complain'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return _deepCastMap(jsonDecode(response.body));
+    }
+    final errorData = jsonDecode(response.body);
+    throw Exception(errorData['error'] ?? 'Lỗi khiếu nại phiên truy cập');
+  }
 }

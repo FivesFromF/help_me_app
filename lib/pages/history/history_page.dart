@@ -114,17 +114,17 @@ class _HistoryPageState extends State<HistoryPage>
     try {
       final result = await AuthService.getVictimSession(victimId);
       if (mounted) {
-        Navigator.of(context).pop(); // Dismiss loading
+        Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => IdentityResultPage(data: result)),
         );
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // Dismiss loading
+        Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi tải hồ sơ: ${e.toString()}'),
+            content: Text('Lỗi tải hồ sơ nạn nhân: ${e.toString().replaceAll("Exception: ", "")}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -132,32 +132,39 @@ class _HistoryPageState extends State<HistoryPage>
     }
   }
 
-  void _showExpiredDialog(BuildContext context) {
+  void _showSessionStatusDialog(BuildContext context, {required String status}) {
+    final bool isComplained = status.toUpperCase() == 'COMPLAINED';
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(PhosphorIconsFill.clockAfternoon, color: Colors.orange, size: 28),
-            SizedBox(width: 10),
+            Icon(
+              isComplained ? PhosphorIconsFill.warningOctagon : PhosphorIconsFill.clockAfternoon,
+              color: isComplained ? const Color(0xFFDC2626) : Colors.orange,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Phiên xem đã hết hạn',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                isComplained ? 'Quyền truy cập đã bị hủy' : 'Phiên xem đã hết hạn',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
             ),
           ],
         ),
-        content: const Text(
-          'Phiên truy cập 1 giờ đã hết hạn vì chính sách bảo mật dữ liệu y tế của nạn nhân. Vui lòng quét lại thẻ NFC/QR nếu tiếp tục quy trình cứu trợ y tế.',
-          style: TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF475569)),
+        content: Text(
+          isComplained
+              ? 'Nạn nhân đã khiếu nại phiên truy cập này. Vì lý do bảo mật và quyền riêng tư, quyền xem hồ sơ y tế đã bị vô hiệu hóa vĩnh viễn.'
+              : 'Phiên truy cập 1 giờ đã hết hạn theo chính sách bảo mật dữ liệu y tế. Vui lòng quét lại thẻ NFC hoặc mã QR nếu nạn nhân vẫn cần hỗ trợ cứu nạn.',
+          style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF475569)),
         ),
         actions: [
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogCtx).pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryOrange,
+              backgroundColor: isComplained ? const Color(0xFFDC2626) : AppColors.primaryOrange,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -178,13 +185,14 @@ class _HistoryPageState extends State<HistoryPage>
     final String status = report['status'] ?? 'PENDING';
     final String date = _formatDate(report['createdAt']);
     final String reportId = (report['reportId'] ?? report['id'] ?? 'N/A').toString();
+    final bool isIdentified = report['origin'] == 'identified';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
+      builder: (modalCtx) => Container(
+        height: MediaQuery.of(modalCtx).size.height * 0.8,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -213,7 +221,7 @@ class _HistoryPageState extends State<HistoryPage>
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(modalCtx).pop(),
                   ),
                 ],
               ),
@@ -238,42 +246,64 @@ class _HistoryPageState extends State<HistoryPage>
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      'Thời gian: $date',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                    ),
-                    const Divider(height: 28),
-                    const Text(
-                      'Nạn nhân liên quan',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(PhosphorIconsFill.user, color: Color(0xFFDC2626)),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              victimName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                              ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isIdentified ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            isIdentified ? 'Cứu trợ xác thực' : 'Báo cáo độc lập',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isIdentified ? const Color(0xFF15803D) : const Color(0xFF64748B),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          date,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
+                    const Divider(height: 28),
+                    if (victimName.isNotEmpty) ...[
+                      const Text(
+                        'Nạn nhân liên quan',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(PhosphorIconsFill.user, color: Color(0xFFDC2626)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                victimName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     const Text(
-                      'Tình trạng sự cố',
+                      'Tình trạng sự cố hiện trường',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                     ),
                     const SizedBox(height: 6),
@@ -298,7 +328,7 @@ class _HistoryPageState extends State<HistoryPage>
                     const SizedBox(height: 16),
                     if (lat.isNotEmpty && lon.isNotEmpty) ...[
                       const Text(
-                        'Tọa độ định vị GPS',
+                        'Tọa độ định vị GPS hiện trường',
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                       ),
                       const SizedBox(height: 6),
@@ -344,7 +374,7 @@ class _HistoryPageState extends State<HistoryPage>
                         height: 50,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            Navigator.of(context).pop();
+                            Navigator.of(modalCtx).pop();
                             _openVictimRecord(context, victimId);
                           },
                           icon: const Icon(PhosphorIconsFill.firstAid, size: 20),
@@ -368,6 +398,372 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAccessReceivedDetailModal(BuildContext context, Map<String, dynamic> item) {
+    final String sessionId = item['sessionId'] ?? '';
+    final responder = item['responder'] is Map ? item['responder'] : null;
+    final String responderName = responder?['name'] ?? 'Người hỗ trợ / Đội cứu nạn';
+    final String role = responder?['role'] ?? 'citizen';
+    final String method = item['method'] ?? 'NFC';
+    final String grantedDate = _formatDate(item['grantedAt']);
+    final String expiresDate = _formatDate(item['expiresAt']);
+    final String status = item['status'] ?? 'ACTIVE';
+    final bool isComplained = status.toUpperCase() == 'COMPLAINED';
+    final bool canComplain = item['canComplain'] == true && !isComplained;
+    final String? complaintReason = item['complaintReason'];
+    final String? complainedAt = item['complainedAt'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) => Container(
+        height: MediaQuery.of(modalCtx).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: isComplained ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(PhosphorIconsFill.shieldCheck, color: Colors.white, size: 26),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Nhật ký truy xuất hồ sơ y tế',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(modalCtx).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: AppColors.primaryOrange.withValues(alpha: 0.15),
+                            radius: 24,
+                            child: const Icon(
+                              PhosphorIconsFill.user,
+                              color: AppColors.primaryOrange,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  responderName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  role == 'admin' ? 'Tổng đài / Y tế cấp cứu' : 'Người hỗ trợ hiện trường',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _buildAccessStatusBadge(status),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Thông tin phiên truy xuất',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoRow('Phương thức quét', method),
+                    _buildInfoRow('Thời điểm quét', grantedDate),
+                    _buildInfoRow('Hết hạn lúc', expiresDate),
+                    const Divider(height: 28),
+                    if (isComplained) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF1F2),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFFECDD3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(PhosphorIconsFill.warningCircle, color: Color(0xFFDC2626), size: 20),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Đã ghi nhận khiếu nại truy cập',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF881337),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Thời gian khiếu nại: ${_formatDate(complainedAt)}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                            ),
+                            if (complaintReason != null && complaintReason.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Lý do: $complaintReason',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF991B1B)),
+                              ),
+                            ],
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Quyền truy cập của người này đã bị thu hồi vĩnh viễn và không thể quét lại.',
+                              style: TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else if (canComplain) ...[
+                      const Text(
+                        'Bạn nghi ngờ phiên truy cập này không hợp lệ?',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(modalCtx).pop();
+                            _showComplaintDialog(context, sessionId, responderName);
+                          },
+                          icon: const Icon(PhosphorIconsFill.warningOctagon, size: 20),
+                          label: const Text(
+                            'Báo cáo truy cập trái phép / Khiếu nại',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFDC2626),
+                            side: const BorderSide(color: Color(0xFFDC2626), width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showComplaintDialog(BuildContext context, String sessionId, String responderName) {
+    final TextEditingController reasonController = TextEditingController();
+    String selectedReason = 'Không có sự cố y tế nào';
+    bool isSubmitting = false;
+
+    final List<String> reasonPresets = [
+      'Không có sự cố y tế nào',
+      'Người lạ tự ý quét thẻ / QR',
+      'Nghi ngờ truy cập trái phép',
+      'Khác',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(PhosphorIconsFill.warningOctagon, color: Color(0xFFDC2626), size: 28),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Khiếu nại truy cập',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hành động này sẽ THU HỒI NGAY LẬP TỨC quyền xem hồ sơ y tế của "$responderName" và chặn vĩnh viễn người này quét lại.',
+                  style: const TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF334155)),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Chọn lý do khiếu nại:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: reasonPresets.map((r) {
+                    final isSel = selectedReason == r;
+                    return ChoiceChip(
+                      label: Text(r),
+                      selected: isSel,
+                      selectedColor: const Color(0xFFDC2626),
+                      backgroundColor: const Color(0xFFF1F5F9),
+                      labelStyle: TextStyle(
+                        color: isSel ? Colors.white : Colors.black87,
+                        fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                      onSelected: (sel) {
+                        if (sel) {
+                          setDlgState(() {
+                            selectedReason = r;
+                            if (r != 'Khác') {
+                              reasonController.text = r;
+                            } else {
+                              reasonController.clear();
+                            }
+                          });
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    hintText: 'Nhập ghi chú lý do chi tiết...',
+                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      setDlgState(() => isSubmitting = true);
+                      try {
+                        final String finalReason = reasonController.text.trim().isNotEmpty
+                            ? reasonController.text.trim()
+                            : selectedReason;
+
+                        await AuthService.submitAccessComplaint(
+                          sessionId,
+                          reason: finalReason,
+                        );
+
+                        if (context.mounted) {
+                          Navigator.of(dialogCtx).pop();
+                          _loadHistory();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã khiếu nại thành công. Quyền truy cập của người này đã bị khóa vĩnh viễn.'),
+                              backgroundColor: Color(0xFF10B981),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDlgState(() => isSubmitting = false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Lỗi khiếu nại: ${e.toString().replaceAll("Exception: ", "")}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Xác nhận khiếu nại'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
@@ -408,6 +804,47 @@ class _HistoryPageState extends State<HistoryPage>
           color: text,
           fontSize: 12,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccessStatusBadge(String status) {
+    Color bg;
+    Color text;
+    String label;
+
+    switch (status.toUpperCase()) {
+      case 'COMPLAINED':
+        bg = const Color(0xFFFEE2E2);
+        text = const Color(0xFFDC2626);
+        label = 'Đã khiếu nại';
+        break;
+      case 'EXPIRED':
+        bg = const Color(0xFFF1F5F9);
+        text = const Color(0xFF64748B);
+        label = 'Đã hết hạn';
+        break;
+      case 'ACTIVE':
+      default:
+        bg = const Color(0xFFDCFCE7);
+        text = const Color(0xFF15803D);
+        label = 'Đang mở';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: text,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -523,7 +960,9 @@ class _HistoryPageState extends State<HistoryPage>
           final String victimName = victim?['fullName'] ?? 'Nạn nhân tại hiện trường';
           final String? victimId = item['victimId'] ?? victim?['id'];
           final String method = item['method'] ?? 'NFC';
+          final String status = item['status'] ?? 'ACTIVE';
           final bool canView = item['canView'] == true;
+          final bool isComplained = status.toUpperCase() == 'COMPLAINED';
           final int secondsRemaining = item['secondsRemaining'] is int ? item['secondsRemaining'] : 0;
           final int minutesRemaining = (secondsRemaining / 60).ceil();
           final String grantedDate = _formatDate(item['grantedAt']);
@@ -534,7 +973,9 @@ class _HistoryPageState extends State<HistoryPage>
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: canView ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
+                color: canView
+                    ? const Color(0xFFBBF7D0)
+                    : (isComplained ? const Color(0xFFFECDD3) : const Color(0xFFE2E8F0)),
               ),
               boxShadow: [
                 BoxShadow(
@@ -550,7 +991,7 @@ class _HistoryPageState extends State<HistoryPage>
                 if (canView && victimId != null) {
                   _openVictimRecord(context, victimId);
                 } else {
-                  _showExpiredDialog(context);
+                  _showSessionStatusDialog(context, status: status);
                 }
               },
               child: Padding(
@@ -590,25 +1031,7 @@ class _HistoryPageState extends State<HistoryPage>
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: canView
-                                      ? const Color(0xFFDCFCE7)
-                                      : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  canView ? 'Còn $minutesRemaining p' : 'Hết hạn',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: canView
-                                        ? const Color(0xFF15803D)
-                                        : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ),
+                              _buildSessionPill(canView: canView, status: status, minutesRemaining: minutesRemaining),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -634,6 +1057,38 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSessionPill({required bool canView, required String status, required int minutesRemaining}) {
+    if (status.toUpperCase() == 'COMPLAINED') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEE2E2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'Bị khiếu nại',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFDC2626)),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: canView ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        canView ? 'Còn $minutesRemaining p' : 'Hết hạn',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: canView ? const Color(0xFF15803D) : const Color(0xFF64748B),
+        ),
       ),
     );
   }
@@ -786,15 +1241,16 @@ class _HistoryPageState extends State<HistoryPage>
           final String method = item['method'] ?? 'NFC';
           final String grantedDate = _formatDate(item['grantedAt']);
           final String status = item['status'] ?? 'ACTIVE';
-          final bool isActive = status == 'ACTIVE';
+          final bool isComplained = status.toUpperCase() == 'COMPLAINED';
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(
+                color: isComplained ? const Color(0xFFFECDD3) : const Color(0xFFE2E8F0),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
@@ -803,74 +1259,70 @@ class _HistoryPageState extends State<HistoryPage>
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    PhosphorIconsFill.shieldCheck,
-                    color: Color(0xFF10B981),
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => _showAccessReceivedDetailModal(context, item),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: (isComplained ? const Color(0xFFDC2626) : const Color(0xFF10B981))
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isComplained ? PhosphorIconsFill.warningOctagon : PhosphorIconsFill.shieldCheck,
+                        color: isComplained ? const Color(0xFFDC2626) : const Color(0xFF10B981),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              responderName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                                color: AppColors.primaryBlack,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  responderName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: AppColors.primaryBlack,
+                                  ),
+                                ),
                               ),
-                            ),
+                              _buildAccessStatusBadge(status),
+                            ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? const Color(0xFFDCFCE7)
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              isActive ? 'Đang mở' : 'Đã khóa',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isActive
-                                    ? const Color(0xFF15803D)
-                                    : const Color(0xFF64748B),
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Phương thức: $method • $grantedDate',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Phương thức: $method • $grantedDate',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           );
         },
