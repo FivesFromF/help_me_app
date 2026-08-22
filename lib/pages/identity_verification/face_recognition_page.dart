@@ -306,91 +306,90 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
 
           // 4. Bottom Controls
           Positioned(
-            bottom: 40,
-            left: 20,
-            right: 20,
+            bottom: 30,
+            left: 16,
+            right: 16,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Flash Toggle
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: _toggleFlash,
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _flashOn ? Icons.flash_on : Icons.flashlight_on,
-                          color: AppColors.primaryOrange,
-                          size: 30,
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: _toggleFlash,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-                SizedBox(width: 10),
-                // Status Pill
-                Container(
-                  height: 60,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
+                    child: Icon(
+                      _flashOn ? Icons.flash_on : Icons.flashlight_on,
+                      color: AppColors.primaryOrange,
+                      size: 26,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Text(
-                        _statusMessage,
-                        style: const TextStyle(
-                          color: Color(0xFF333333),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Animated Wave
-                      AnimatedBuilder(
-                        animation: _waveController,
-                        builder: (context, child) {
-                          return Image.asset(
-                            'assets/screenshots/VerifyIdentity/HeartBeatLine.png',
-                            height: 20,
-                            color: AppColors.primaryOrange.withValues(
-                              alpha: 0.6 + 0.4 * _waveController.value,
+                ),
+                const SizedBox(width: 10),
+
+                // Status Pill (Expanded to prevent overflow)
+                Expanded(
+                  child: Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _statusMessage,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: Color(0xFF333333),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
-                          );
-                        },
-                      ),
-                    ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Animated Wave
+                        AnimatedBuilder(
+                          animation: _waveController,
+                          builder: (context, child) {
+                            return Image.asset(
+                              'assets/screenshots/VerifyIdentity/HeartBeatLine.png',
+                              height: 16,
+                              color: AppColors.primaryOrange.withValues(
+                                alpha: 0.6 + 0.4 * _waveController.value,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+                const SizedBox(width: 10),
 
                 // Cancel Button
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryOrange.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryOrange.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
                     ),
-                  ],
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
                 ),
               ],
             ),
