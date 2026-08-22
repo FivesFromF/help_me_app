@@ -29,7 +29,6 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
   // Continuous Scan States
   DateTime? _lastSearchTime;
   bool _isProcessingMatch = false;
-  double _livenessProgress = 0.0;
 
   late AnimationController _waveController;
 
@@ -165,7 +164,6 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
     if (!mounted) return;
     setState(() {
       _statusMessage = msg;
-      _livenessProgress = progress; // Used for the UI progress bar
     });
   }
 

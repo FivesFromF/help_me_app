@@ -54,7 +54,7 @@ class NfcService {
     }
   }
 
-  /// Chuyển đổi đệ quy bất kỳ Map/List nào từ Platform channel thành Map<String, dynamic> chuẩn
+  /// Chuyển đổi đệ quy bất kỳ Map/List nào từ Platform channel thành `Map<String, dynamic>` chuẩn
   static Map<String, dynamic> _deepCastMap(Map dynamicMap) {
     final Map<String, dynamic> result = {};
     dynamicMap.forEach((key, value) {

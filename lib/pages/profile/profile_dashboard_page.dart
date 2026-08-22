@@ -16,7 +16,6 @@ class ProfileDashboardPage extends StatefulWidget {
 class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   int _activeTab = 0;
   bool _isChecking = true;
-  final bool _showWarning = false;
 
   @override
   void initState() {

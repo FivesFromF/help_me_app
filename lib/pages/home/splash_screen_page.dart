@@ -31,7 +31,6 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
       if (loggedIn) {
         try {
           // Lấy profile mới nhất để kiểm tra các flag trạng thái
-          print('SplashScreen: Fetching latest profile...');
           final res = await AuthService.fetchAndCacheProfile();
           final citizen = res['citizen'] ?? res['profile'] ?? {};
 
@@ -42,6 +41,8 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
               citizen['consent_regulation'] ??
               false;
 
+          if (!mounted) return;
+
           if (!firstDeclare) {
             context.go('/auth/sign-up');
           } else if (!consent) {
@@ -50,12 +51,14 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
             context.go('/home');
           }
         } catch (e) {
-          // If token is invalid or expired, redirect to sign-in
-          context.go('/sign-in');
+          if (mounted) {
+            context.go('/sign-in');
+          }
         }
       } else {
-        print('SplashScreen: Not logged in, redirecting to /sign-in');
-        context.go('/sign-in');
+        if (mounted) {
+          context.go('/sign-in');
+        }
       }
     }
   }
