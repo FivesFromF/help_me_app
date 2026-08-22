@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
@@ -162,28 +161,31 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
 
   Future<void> _performBackgroundSearch() async {
     if (_cameraController == null || _isProcessingMatch) return;
+    _isProcessingMatch = true;
 
     try {
       final XFile file = await _cameraController!.takePicture();
-      final bytes = await File(file.path).readAsBytes();
-      final b64 = base64Encode(bytes);
 
-      // Call API in background
-      final result = await AuthService.searchByFace(faceImageB64: b64);
+      // Call API in background using filePath directly
+      final result = await AuthService.searchByFace(filePath: file.path);
 
       if (result['matchStatus'] == 'MATCH_FOUND' ||
           result['victim'] != null ||
           result['citizen'] != null) {
-        _isProcessingMatch = true;
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => IdentityResultPage(data: result)),
           );
         }
+        return;
       }
     } catch (e) {
       // No match or error, just continue scanning silently
-      debugPrint("Background search: No match found yet.");
+      debugPrint("Background search: No match found yet ($e).");
+    } finally {
+      if (mounted) {
+        _isProcessingMatch = false;
+      }
     }
   }
 

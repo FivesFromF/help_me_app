@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
@@ -133,6 +135,20 @@ class AuthService {
   }
 
   static Future<String?> getAccessToken() async {
+    try {
+      final session = await Amplify.Auth.fetchAuthSession();
+      if (session.isSignedIn && session is CognitoAuthSession) {
+        final tokens = session.userPoolTokensResult.value;
+        final rawToken = tokens.accessToken.raw;
+        if (rawToken.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('access_token', rawToken);
+          return rawToken;
+        }
+      }
+    } catch (e) {
+      safePrint('Amplify token fetch / refresh note: $e');
+    }
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
   }
@@ -266,26 +282,134 @@ class AuthService {
   }
 
   // =============================================
-  // Citizen: Đăng ký sinh trắc học khuôn mặt
+  // Async S3 Upload & AI Job Polling
   // =============================================
 
-  static Future<Map<String, dynamic>> registerFace(String base64Image) async {
+  static Future<Map<String, dynamic>> getUploadUrl({
+    required String operation,
+    String? citizenId,
+    String fileType = 'image/jpeg',
+  }) async {
     final token = await getAccessToken();
     final response = await http.post(
-      Uri.parse('$_baseUrl/api/v1/write/citizen/face'),
+      Uri.parse('$_baseUrl/api/v1/write/upload-url'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
+        if (token != null) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'imageBase64': base64Image,
+        'operation': operation,
+        'fileType': fileType,
+        if (citizenId != null) 'citizenId': citizenId,
       }),
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      return jsonDecode(response.body) as Map<String, dynamic>;
     }
-    throw Exception('Lỗi đăng ký khuôn mặt: ${response.body}');
+    throw Exception('Lỗi tạo URL tải ảnh: ${response.body}');
+  }
+
+  static Future<void> uploadBytesToS3({
+    required String uploadUrl,
+    required List<int> bytes,
+    String contentType = 'image/jpeg',
+  }) async {
+    final response = await http.put(
+      Uri.parse(uploadUrl),
+      headers: {
+        'Content-Type': contentType,
+      },
+      body: bytes,
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Tải ảnh lên S3 thất bại: mã lỗi ${response.statusCode}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> pollScanJob({
+    required String jobId,
+    int maxAttempts = 20,
+    Duration interval = const Duration(seconds: 1),
+  }) async {
+    final token = await getAccessToken();
+    for (int i = 0; i < maxAttempts; i++) {
+      await Future.delayed(interval);
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/v1/read/scan/jobs/$jobId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final job = data['job'];
+        if (job != null) {
+          final status = job['status'];
+          if (status == 'COMPLETED') {
+            final result = job['result'] ?? job;
+            return _deepCastMap(result);
+          } else if (status == 'FAILED') {
+            final error = job['error'] ?? 'Xử lý hình ảnh thất bại';
+            throw Exception(error);
+          }
+        }
+      }
+    }
+    throw TimeoutException('Hết thời gian chờ xử lý khuôn mặt');
+  }
+
+  // =============================================
+  // Citizen: Đăng ký sinh trắc học khuôn mặt
+  // =============================================
+
+  static Future<Map<String, dynamic>> registerFace({
+    String? base64Image,
+    String? filePath,
+    List<int>? imageBytes,
+  }) async {
+    List<int> bytes;
+    if (imageBytes != null) {
+      bytes = imageBytes;
+    } else if (filePath != null) {
+      bytes = await File(filePath).readAsBytes();
+    } else if (base64Image != null && base64Image.isNotEmpty) {
+      bytes = base64Decode(
+        base64Image.contains(',') ? base64Image.split(',').last : base64Image,
+      );
+    } else {
+      throw Exception('Thiếu dữ liệu hình ảnh khuôn mặt');
+    }
+
+    // Get current citizen ID
+    final profileData = await getCachedProfile();
+    final citizen = profileData?['citizen'] ?? profileData?['profile'];
+    final citizenId = citizen?['id'] ?? citizen?['cognitoId'];
+
+    // 1. Get presigned S3 upload URL for FACE_ENROLL
+    final uploadInfo = await getUploadUrl(
+      operation: 'FACE_ENROLL',
+      citizenId: citizenId?.toString(),
+      fileType: 'image/jpeg',
+    );
+
+    final uploadUrl = uploadInfo['uploadUrl'] as String;
+    final jobId = uploadInfo['jobId'] as String;
+
+    // 2. Upload raw JPEG bytes directly to S3
+    await uploadBytesToS3(uploadUrl: uploadUrl, bytes: bytes);
+
+    // 3. Poll AI worker scan job in DynamoDB
+    final result = await pollScanJob(jobId: jobId);
+
+    // 4. Refresh local profile cache
+    await fetchAndCacheProfile().catchError((_) => <String, dynamic>{});
+
+    return result;
   }
 
   static Future<Map<String, dynamic>> fetchAndCacheProfile() async {
@@ -540,28 +664,45 @@ class AuthService {
 
   static Future<Map<String, dynamic>> searchByFace({
     String? faceImageB64,
+    String? filePath,
+    List<int>? imageBytes,
     List<double>? faceVector,
   }) async {
-    final token = await getAccessToken();
-    final response = await http.post(
-      Uri.parse('$_baseUrl/api/v1/read/scan'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'method': 'FACE',
-        'imageBase64': faceImageB64,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      return _deepCastMap(decoded);
+    List<int> bytes;
+    if (imageBytes != null) {
+      bytes = imageBytes;
+    } else if (filePath != null) {
+      bytes = await File(filePath).readAsBytes();
+    } else if (faceImageB64 != null && faceImageB64.isNotEmpty) {
+      bytes = base64Decode(
+        faceImageB64.contains(',') ? faceImageB64.split(',').last : faceImageB64,
+      );
+    } else {
+      throw Exception('Thiếu dữ liệu hình ảnh khuôn mặt');
     }
 
-    final errorData = jsonDecode(response.body);
-    throw Exception(errorData['error'] ?? 'Không tìm thấy thông tin nạn nhân');
+    // 1. Get presigned S3 upload URL for FACE_SCAN
+    final uploadInfo = await getUploadUrl(
+      operation: 'FACE_SCAN',
+      fileType: 'image/jpeg',
+    );
+
+    final uploadUrl = uploadInfo['uploadUrl'] as String;
+    final jobId = uploadInfo['jobId'] as String;
+
+    // 2. Upload raw JPEG bytes directly to S3
+    await uploadBytesToS3(uploadUrl: uploadUrl, bytes: bytes);
+
+    // 3. Poll AI worker scan job in DynamoDB
+    final result = await pollScanJob(jobId: jobId, maxAttempts: 20);
+
+    if (result['matchStatus'] == 'NO_MATCH') {
+      throw Exception('Không tìm thấy thông tin nạn nhân khớp trong hệ thống');
+    } else if (result['matchStatus'] == 'ACCESS_REVOKED') {
+      throw Exception('Truy cập hồ sơ công dân đã bị thu hồi do khiếu nại');
+    }
+
+    return result;
   }
 
   // =============================================

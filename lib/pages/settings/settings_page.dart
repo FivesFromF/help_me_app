@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -389,16 +387,13 @@ class SettingsPage extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) => FaceEnrollmentPage(
           onFaceCaptured: (path) async {
-            // Encode to base64 and update profile
-            final bytes = await File(path).readAsBytes();
-            final b64 = base64Encode(bytes);
-
             try {
-              await AuthService.updateProfile({'faceImageB64': b64});
+              await AuthService.registerFace(filePath: path);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Cập nhật khuôn mặt thành công'),
+                    content: Text('Đăng ký sinh trắc học khuôn mặt thành công'),
+                    backgroundColor: Color(0xFF10B981),
                   ),
                 );
                 Navigator.pop(context);
@@ -407,7 +402,7 @@ class SettingsPage extends StatelessWidget {
               if (context.mounted) {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+                ).showSnackBar(SnackBar(content: Text('Lỗi đăng ký: $e')));
               }
             }
           },

@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:help_me_app/app_colors.dart';
@@ -1458,12 +1456,9 @@ class _MedicalRecordPageState extends State<MedicalRecordPage> {
       MaterialPageRoute(
         builder: (context) => FaceEnrollmentPage(
           onFaceCaptured: (path) async {
-            final bytes = await File(path).readAsBytes();
-            final b64 = base64Encode(bytes);
-
             setState(() => _isLoading = true);
             try {
-              await AuthService.registerFace(b64);
+              await AuthService.registerFace(filePath: path);
               await _fetchData(); // Refresh profile
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
