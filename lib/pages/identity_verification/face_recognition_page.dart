@@ -30,6 +30,8 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
   DateTime? _lastSearchTime;
   bool _isProcessingMatch = false;
 
+  List<CameraDescription> _availableCameras = [];
+  int _selectedCameraIndex = 0;
   late AnimationController _waveController;
 
   @override
@@ -47,15 +49,27 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
     final options = FaceDetectorOptions(performanceMode: FaceDetectorMode.fast);
     _faceDetector = FaceDetector(options: options);
 
-    // 2. Initialize Camera
-    final cameras = await availableCameras();
-    final backCamera = cameras.firstWhere(
-      (camera) => camera.lensDirection == CameraLensDirection.back,
-      orElse: () => cameras.first,
-    );
+    // 2. Discover Cameras
+    _availableCameras = await availableCameras();
+    if (_availableCameras.isEmpty) return;
 
-    _cameraController = CameraController(
-      backCamera,
+    _selectedCameraIndex = _availableCameras.indexWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.back,
+    );
+    if (_selectedCameraIndex == -1) _selectedCameraIndex = 0;
+
+    await _startCameraController(_availableCameras[_selectedCameraIndex]);
+  }
+
+  Future<void> _startCameraController(CameraDescription camera) async {
+    final oldController = _cameraController;
+    if (oldController != null) {
+      _cameraController = null;
+      await oldController.dispose();
+    }
+
+    final controller = CameraController(
+      camera,
       ResolutionPreset.medium,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
@@ -63,13 +77,26 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
           : ImageFormatGroup.bgra8888,
     );
 
-    await _cameraController?.initialize();
-    if (!mounted) return;
+    try {
+      await controller.initialize();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
 
-    // 3. Start Image Stream
-    _cameraController?.startImageStream(_processCameraImage);
+      _cameraController = controller;
+      _cameraController?.startImageStream(_processCameraImage);
+      setState(() {});
+    } catch (e) {
+      debugPrint('Error starting camera: $e');
+    }
+  }
 
-    setState(() {});
+  Future<void> _switchCamera() async {
+    if (_availableCameras.length < 2) return;
+    _selectedCameraIndex = (_selectedCameraIndex + 1) % _availableCameras.length;
+    _flashOn = false;
+    await _startCameraController(_availableCameras[_selectedCameraIndex]);
   }
 
   @override
@@ -315,8 +342,8 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
                 GestureDetector(
                   onTap: _toggleFlash,
                   child: Container(
-                    width: 50,
-                    height: 50,
+                    width: 46,
+                    height: 46,
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -324,20 +351,41 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
                     child: Icon(
                       _flashOn ? Icons.flash_on : Icons.flashlight_on,
                       color: AppColors.primaryOrange,
-                      size: 26,
+                      size: 24,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+
+                // Switch Camera (Front / Back)
+                if (_availableCameras.length > 1) ...[
+                  GestureDetector(
+                    onTap: _switchCamera,
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.cameraswitch_rounded,
+                        color: AppColors.primaryOrange,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
 
                 // Status Pill (Expanded to prevent overflow)
                 Expanded(
                   child: Container(
-                    height: 50,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    height: 46,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(23),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -350,18 +398,18 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
                             style: const TextStyle(
                               color: Color(0xFF333333),
                               fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                              fontSize: 12,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         // Animated Wave
                         AnimatedBuilder(
                           animation: _waveController,
                           builder: (context, child) {
                             return Image.asset(
                               'assets/screenshots/VerifyIdentity/HeartBeatLine.png',
-                              height: 16,
+                              height: 14,
                               color: AppColors.primaryOrange.withValues(
                                 alpha: 0.6 + 0.4 * _waveController.value,
                               ),
@@ -372,14 +420,14 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
 
                 // Cancel Button
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
-                    width: 50,
-                    height: 50,
+                    width: 46,
+                    height: 46,
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -387,7 +435,7 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage>
                     child: const Icon(
                       Icons.close,
                       color: AppColors.primaryOrange,
-                      size: 26,
+                      size: 24,
                     ),
                   ),
                 ),
