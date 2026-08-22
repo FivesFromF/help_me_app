@@ -54,23 +54,58 @@ class NfcService {
     }
   }
 
+  /// Chuyển đổi đệ quy bất kỳ Map/List nào từ Platform channel thành Map<String, dynamic> chuẩn
+  static Map<String, dynamic> _deepCastMap(Map dynamicMap) {
+    final Map<String, dynamic> result = {};
+    dynamicMap.forEach((key, value) {
+      final stringKey = key.toString();
+      if (value is Map) {
+        result[stringKey] = _deepCastMap(value);
+      } else if (value is List) {
+        result[stringKey] = _deepCastList(value);
+      } else {
+        result[stringKey] = value;
+      }
+    });
+    return result;
+  }
+
+  static List<dynamic> _deepCastList(List dynamicList) {
+    return dynamicList.map((item) {
+      if (item is Map) {
+        return _deepCastMap(item);
+      } else if (item is List) {
+        return _deepCastList(item);
+      }
+      return item;
+    }).toList();
+  }
+
+  static NfcTag _sanitizeTag(NfcTag tag) {
+    final sanitizedData = _deepCastMap(tag.data);
+    return NfcTag(
+      handle: tag.handle,
+      data: sanitizedData,
+    );
+  }
+
   /// Lấy UID từ thẻ NFC.
   static String? getTagUid(NfcTag tag) {
     final platformData = tag.data;
     Object? identifier;
 
     // Android
-    if (platformData.containsKey('nfca')) {
+    if (platformData.containsKey('nfca') && platformData['nfca'] is Map) {
       identifier = platformData['nfca']['identifier'];
-    } else if (platformData.containsKey('mifareclassic')) {
+    } else if (platformData.containsKey('mifareclassic') && platformData['mifareclassic'] is Map) {
       identifier = platformData['mifareclassic']['identifier'];
-    } else if (platformData.containsKey('isodep')) {
+    } else if (platformData.containsKey('isodep') && platformData['isodep'] is Map) {
       identifier = platformData['isodep']['identifier'];
-    } else if (platformData.containsKey('nfcv')) {
+    } else if (platformData.containsKey('nfcv') && platformData['nfcv'] is Map) {
       identifier = platformData['nfcv']['identifier'];
     }
     // iOS
-    else if (platformData.containsKey('mifare')) {
+    else if (platformData.containsKey('mifare') && platformData['mifare'] is Map) {
       identifier = platformData['mifare']['identifier'];
     }
 
@@ -82,8 +117,8 @@ class NfcService {
     String? uid;
     if (identifier is Uint8List) {
       uid = _formatUid(identifier);
-    } else if (identifier is List<int>) {
-      uid = _formatUid(Uint8List.fromList(identifier));
+    } else if (identifier is List) {
+      uid = _formatUid(Uint8List.fromList(identifier.cast<int>()));
     }
 
     debugPrint('NFC Service: Formatted UID: $uid');
@@ -94,10 +129,11 @@ class NfcService {
   static Future<bool> writeNdef(NfcTag tag, String text) async {
     debugPrint('NFC Service: Attempting to write NDEF text: $text');
     
-    // Small delay before even getting Ndef object to let hardware settle
+    // Small delay before getting Ndef object to let hardware settle
     await Future.delayed(const Duration(milliseconds: 300));
     
-    final ndef = Ndef.from(tag);
+    final sanitized = _sanitizeTag(tag);
+    final ndef = Ndef.from(sanitized);
     if (ndef == null) {
       debugPrint('NFC Service: NDEF is not supported on this tag or tag was moved too fast');
       return false;
@@ -112,9 +148,7 @@ class NfcService {
     final message = NdefMessage([record]);
 
     try {
-      // Increased delay to ensure hardware is ready after backend call/discovery
       await Future.delayed(const Duration(milliseconds: 500));
-      
       await ndef.write(message);
       debugPrint('NFC Service: Write successful!');
       return true;
@@ -127,42 +161,63 @@ class NfcService {
         return true;
       } catch (retryError) {
         debugPrint('NFC Service: Write failed after retry: $retryError');
-        // Check if tag is still there
         rethrow;
       }
     }
   }
 
-  /// Đọc dữ liệu NDEF từ thẻ.
+  /// Đọc dữ liệu NDEF từ thẻ một cách an toàn (tránh lỗi cast _Map<dynamic, dynamic> trên Android).
   static Future<String?> readNdef(NfcTag tag) async {
-    final ndef = Ndef.from(tag);
-    if (ndef == null) {
-      debugPrint('NFC Service: NDEF not supported');
-      return null;
-    }
-
     try {
-      final message = ndef.cachedMessage;
-      if (message == null || message.records.isEmpty) {
-        debugPrint('NFC Service: NDEF message is empty');
-        return null;
-      }
+      final platformData = tag.data;
 
-      for (var record in message.records) {
-        if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
-            listEquals(record.type, Uint8List.fromList([0x54]))) {
-          // Type 'T' (Text)
-          final payload = record.payload;
-          if (payload.isEmpty) continue;
-          
-          // First byte is status (language code length)
-          final langCodeLen = payload[0] & 0x3F;
-          return utf8.decode(payload.sublist(1 + langCodeLen));
+      // Cách 1: Đọc trực tiếp từ cachedMessage trong raw platformData để không bị lỗi type cast của plugin
+      if (platformData.containsKey('ndef') && platformData['ndef'] is Map) {
+        final ndefData = platformData['ndef'] as Map;
+        if (ndefData.containsKey('cachedMessage') && ndefData['cachedMessage'] is Map) {
+          final cachedMsg = ndefData['cachedMessage'] as Map;
+          if (cachedMsg.containsKey('records') && cachedMsg['records'] is List) {
+            final records = cachedMsg['records'] as List;
+            for (final record in records) {
+              if (record is Map && record.containsKey('payload')) {
+                final rawPayload = record['payload'];
+                if (rawPayload is List && rawPayload.isNotEmpty) {
+                  final List<int> payload = rawPayload.cast<int>();
+                  // Byte đầu tiên là độ dài mã ngôn ngữ (status byte)
+                  final langCodeLen = payload[0] & 0x3F;
+                  if (payload.length > 1 + langCodeLen) {
+                    final text = utf8.decode(payload.sublist(1 + langCodeLen));
+                    debugPrint('NFC Service: Successfully decoded NDEF Text directly: $text');
+                    return text;
+                  }
+                }
+              }
+            }
+          }
         }
       }
+
+      // Cách 2: Fallback qua Ndef.from với sanitized tag
+      final sanitized = _sanitizeTag(tag);
+      final ndef = Ndef.from(sanitized);
+      if (ndef != null && ndef.cachedMessage != null) {
+        for (var record in ndef.cachedMessage!.records) {
+          if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
+              listEquals(record.type, Uint8List.fromList([0x54]))) {
+            final payload = record.payload;
+            if (payload.isEmpty) continue;
+            final langCodeLen = payload[0] & 0x3F;
+            final text = utf8.decode(payload.sublist(1 + langCodeLen));
+            debugPrint('NFC Service: Successfully decoded NDEF Text via Ndef.from: $text');
+            return text;
+          }
+        }
+      }
+
+      debugPrint('NFC Service: No valid NDEF text payload found');
       return null;
-    } catch (e) {
-      debugPrint('NFC Service: Read error: $e');
+    } catch (e, stack) {
+      debugPrint('NFC Service: Error in readNdef: $e\n$stack');
       return null;
     }
   }
