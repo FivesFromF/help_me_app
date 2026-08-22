@@ -225,7 +225,7 @@ class _IdentityResultPageState extends State<IdentityResultPage> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 110,
+            height: 116,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: candidateList.length,
@@ -247,7 +247,7 @@ class _IdentityResultPageState extends State<IdentityResultPage> {
                   },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    width: 160,
+                    width: 175,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isSelected ? Colors.white : const Color(0xFFDCFCE7),
@@ -309,7 +309,7 @@ class _IdentityResultPageState extends State<IdentityResultPage> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   fontWeight: FontWeight.w800,
                                   color: isSelected
                                       ? const Color(0xFF15803D)
@@ -330,8 +330,10 @@ class _IdentityResultPageState extends State<IdentityResultPage> {
                                 ),
                                 child: Text(
                                   '$matchPercent% khớp',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
                                     color: isSelected
                                         ? Colors.white
@@ -743,7 +745,8 @@ class _IdentityResultPageState extends State<IdentityResultPage> {
     Map<String, dynamic> profile,
     Map<String, dynamic> medical,
   ) {
-    final String? victimId = profile['id'] ?? data['victimId'] ?? data['citizenId'];
+    final String? victimId =
+        profile['id'] ?? widget.data['victimId'] ?? widget.data['citizenId'];
     final String victimName = profile['fullName'] ?? 'Nạn nhân';
     final String bloodGroup = medical['bloodGroup'] ?? 'Chưa rõ';
 
