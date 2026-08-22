@@ -11,6 +11,8 @@ import 'package:help_me_app/pages/history/history_page.dart';
 import 'package:help_me_app/pages/settings/settings_page.dart';
 import 'package:help_me_app/shared/widgets/verification_guard_dialog.dart';
 import 'package:help_me_app/shared/models/citizen_profile.dart';
+import 'package:help_me_app/shared/services/location_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -457,9 +459,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 ),
                 const SizedBox(height: 20),
 
-                // Emergency Section
+                // Emergency Call Section
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(30),
@@ -479,6 +481,12 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           PhosphorIconsRegular.phoneCall,
                           'Gọi 115',
                           AppColors.primaryGreen,
+                          onTap: () async {
+                            final uri = Uri.parse('tel:115');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
                         ),
                       ),
                       Container(
@@ -491,14 +499,496 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           PhosphorIconsRegular.videoCamera,
                           'Video call trực tiếp',
                           AppColors.primaryGreen,
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Đang kết nối Video Call tới Tổng đài hỗ trợ 115...'),
+                                backgroundColor: AppColors.primaryOrange,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Emergency Incident Report Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showStandaloneEmergencySheet(context),
+                    icon: const Icon(PhosphorIconsFill.siren, size: 24),
+                    label: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Báo cáo khẩn cấp',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDC2626),
+                      foregroundColor: Colors.white,
+                      elevation: 3,
+                      shadowColor: const Color(0xFFDC2626).withValues(alpha: 0.4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 120), // Placeholder for floating nav bar
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStandaloneEmergencySheet(BuildContext context) {
+    final TextEditingController descController = TextEditingController(
+      text: 'Cần hỗ trợ cứu hộ khẩn cấp tại hiện trường.',
+    );
+    String selectedTag = 'Tai nạn giao thông';
+    bool isSubmitting = false;
+
+    LocationResult? currentLocation;
+    bool isLocating = true;
+
+    final List<String> quickTags = [
+      'Tai nạn giao thông',
+      'Bất tỉnh / Ngất xỉu',
+      'Chấn thương nặng',
+      'Khó thở / Co giật',
+      'Đột quỵ / Đau tim',
+      'Hỏa hoạn / Cháy nổ',
+      'Khác',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          if (isLocating && currentLocation == null) {
+            LocationService.getCurrentLocation().then((loc) {
+              if (context.mounted) {
+                setSheetState(() {
+                  currentLocation = loc;
+                  isLocating = false;
+                });
+              }
+            });
+          }
+
+          final String latStr = currentLocation?.latString ?? LocationService.defaultLat.toString();
+          final String lonStr = currentLocation?.lonString ?? LocationService.defaultLon.toString();
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            child: Column(
+              children: [
+                // Top Header Banner
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFDC2626),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        PhosphorIconsFill.siren,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Báo cáo sự cố khẩn cấp',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: isSubmitting ? null : () => Navigator.of(sheetContext).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Sheet Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // GPS Location Card
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isLocating
+                                ? const Color(0xFFF0F9FF)
+                                : (currentLocation?.isRealGps == true
+                                    ? const Color(0xFFF0FDF4)
+                                    : const Color(0xFFFFFBEB)),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isLocating
+                                  ? const Color(0xFFBAE6FD)
+                                  : (currentLocation?.isRealGps == true
+                                      ? const Color(0xFFBBF7D0)
+                                      : const Color(0xFFFDE68A)),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                PhosphorIconsFill.mapPin,
+                                color: isLocating
+                                    ? const Color(0xFF0284C7)
+                                    : (currentLocation?.isRealGps == true
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFFD97706)),
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            isLocating
+                                                ? 'Đang lấy vị trí GPS thực tế...'
+                                                : (currentLocation?.isRealGps == true
+                                                    ? 'Vị trí GPS thời gian thực'
+                                                    : 'Vị trí dự phòng (GPS tắt)'),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                              color: isLocating
+                                                  ? const Color(0xFF0369A1)
+                                                  : (currentLocation?.isRealGps == true
+                                                      ? const Color(0xFF15803D)
+                                                      : const Color(0xFFB45309)),
+                                            ),
+                                          ),
+                                        ),
+                                        if (currentLocation?.isRealGps == true && currentLocation?.accuracy != null) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '±${currentLocation!.accuracy!.toStringAsFixed(1)}m',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF16A34A),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      isLocating
+                                          ? 'Đang đồng bộ với vệ tinh định vị...'
+                                          : 'Tọa độ: $latStr, $lonStr',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (isLocating)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF0284C7),
+                                  ),
+                                )
+                              else
+                                IconButton(
+                                  tooltip: 'Làm mới vị trí GPS',
+                                  icon: const Icon(
+                                    Icons.refresh_rounded,
+                                    color: Color(0xFF0284C7),
+                                    size: 22,
+                                  ),
+                                  onPressed: () {
+                                    setSheetState(() {
+                                      isLocating = true;
+                                    });
+                                    LocationService.getCurrentLocation().then((loc) {
+                                      if (context.mounted) {
+                                        setSheetState(() {
+                                          currentLocation = loc;
+                                          isLocating = false;
+                                        });
+                                      }
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Quick Situation Selector
+                        const Text(
+                          'Tình trạng sự cố khẩn cấp',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: AppColors.primaryBlack,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: quickTags.map((tag) {
+                            final isSelected = selectedTag == tag;
+                            return ChoiceChip(
+                              label: Text(tag),
+                              selected: isSelected,
+                              selectedColor: const Color(0xFFDC2626),
+                              backgroundColor: const Color(0xFFF1F5F9),
+                              labelStyle: TextStyle(
+                                color: isSelected ? Colors.white : Colors.black87,
+                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: isSelected ? const Color(0xFFDC2626) : Colors.transparent,
+                                ),
+                              ),
+                              onSelected: isSubmitting
+                                  ? null
+                                  : (selected) {
+                                      if (selected) {
+                                        setSheetState(() {
+                                          selectedTag = tag;
+                                          descController.text =
+                                              '[$tag] Cần cứu hộ y tế / hỗ trợ khẩn cấp tại hiện trường.';
+                                        });
+                                      }
+                                    },
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Situation Details Input
+                        const Text(
+                          'Mô tả chi tiết hiện trường',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: AppColors.primaryBlack,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: descController,
+                          maxLines: 3,
+                          enabled: !isSubmitting,
+                          decoration: InputDecoration(
+                            hintText: 'Nhập thông tin mô tả chi tiết vị trí, hiện trường...',
+                            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFDC2626), width: 2),
+                            ),
+                            contentPadding: const EdgeInsets.all(14),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Action Submit Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: isSubmitting
+                                ? null
+                                : () async {
+                                    setSheetState(() => isSubmitting = true);
+                                    try {
+                                      final result = await AuthService.reportEmergency(
+                                        locationLat: latStr,
+                                        locationLon: lonStr,
+                                        situationDescription: descController.text.trim(),
+                                      );
+
+                                      if (context.mounted) {
+                                        Navigator.of(sheetContext).pop();
+                                        _showEmergencySuccessDialog(context, result);
+                                      }
+                                    } catch (e) {
+                                      setSheetState(() => isSubmitting = false);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Lỗi gửi báo cáo: ${e.toString()}'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFDC2626),
+                              foregroundColor: Colors.white,
+                              elevation: 4,
+                              shadowColor: const Color(0xFFDC2626).withValues(alpha: 0.4),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(PhosphorIconsFill.paperPlaneTilt, size: 22),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'XÁC NHẬN GỬI CỨU HỘ',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showEmergencySuccessDialog(BuildContext context, Map<String, dynamic> result) {
+    final String reportId = (result['reportId'] ?? result['id'] ?? 'N/A').toString();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(PhosphorIconsFill.checkCircle, color: Color(0xFF10B981), size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Yêu cầu cứu hộ đã gửi',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Tín hiệu khẩn cấp kèm định vị GPS đã được chuyển tiếp đến Trung tâm điều phối cấp cứu 115 và lực lượng hỗ trợ.',
+              style: TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF475569)),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Text(
+                    'Mã sự cố: ',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '#${reportId.length > 8 ? reportId.substring(0, 8).toUpperCase() : reportId}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Xác nhận'),
           ),
         ],
       ),
@@ -582,20 +1072,32 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildBottomAction(IconData icon, String label, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 36),
-        const SizedBox(height: 10),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primaryBlack,
-          ),
+  Widget _buildBottomAction(
+    IconData icon,
+    String label,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 36),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primaryBlack,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
