@@ -65,47 +65,57 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
         backgroundColor: AppColors.primaryOrange,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           'Hồ sơ người dùng',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
         ),
       ),
       body: Column(
         children: [
           Container(
             color: const Color(0xFFEDE1D3),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Expanded(
                   child: InkWell(
                     onTap: () => setState(() => _activeTab = 0),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(height: 12),
-                        Text(
-                          'Hồ sơ y tế',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _activeTab == 0
-                                ? AppColors.primaryOrange
-                                : AppColors.primaryBlack,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
+                        const SizedBox(height: 10),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Hồ sơ y tế',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _activeTab == 0
+                                  ? AppColors.primaryOrange
+                                  : AppColors.primaryBlack,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Divider(
-                          thickness: 3,
-                          height: 3,
-                          color: _activeTab == 0
-                              ? AppColors.primaryOrange
-                              : Colors.transparent,
-                          indent: 20,
-                          endIndent: 20,
+                        const SizedBox(height: 6),
+                        Container(
+                          height: 2.5,
+                          width: double.infinity,
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: _activeTab == 0
+                                ? AppColors.primaryOrange
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ],
                     ),
@@ -115,28 +125,34 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                   child: InkWell(
                     onTap: () => setState(() => _activeTab = 1),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(height: 12),
-                        Text(
-                          'Thông tin người thân',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _activeTab == 1
-                                ? AppColors.primaryOrange
-                                : AppColors.primaryBlack,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
+                        const SizedBox(height: 10),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Thông tin người thân',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _activeTab == 1
+                                  ? AppColors.primaryOrange
+                                  : AppColors.primaryBlack,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Divider(
-                          thickness: 3,
-                          height: 3,
-                          color: _activeTab == 1
-                              ? AppColors.primaryOrange
-                              : Colors.transparent,
-                          indent: 20,
-                          endIndent: 20,
+                        const SizedBox(height: 6),
+                        Container(
+                          height: 2.5,
+                          width: double.infinity,
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: _activeTab == 1
+                                ? AppColors.primaryOrange
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ],
                     ),
