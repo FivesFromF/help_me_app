@@ -375,15 +375,15 @@ class IdentityResultPage extends StatelessWidget {
     List<dynamic> contacts,
   ) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -400,7 +400,7 @@ class IdentityResultPage extends StatelessWidget {
                   onTap: () => _makeCall('114'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildSecondaryButton(
                   icon: PhosphorIconsFill.usersThree,
@@ -414,20 +414,20 @@ class IdentityResultPage extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           // 🚨 Emergency Action Button: "Gửi yêu cầu khẩn cấp"
           SizedBox(
             width: double.infinity,
-            height: 60,
+            height: 48,
             child: ElevatedButton.icon(
               onPressed: () => _showEmergencyReportSheet(context, profile, medical),
-              icon: const Icon(PhosphorIconsFill.siren, size: 26, color: Colors.white),
+              icon: const Icon(PhosphorIconsFill.siren, size: 20, color: Colors.white),
               label: const FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   'Gửi yêu cầu khẩn cấp',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 15,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.3,
                   ),
@@ -436,37 +436,37 @@ class IdentityResultPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626), // Emergency Vivid Red
                 foregroundColor: Colors.white,
-                elevation: 4,
-                shadowColor: const Color(0xFFDC2626).withValues(alpha: 0.45),
+                elevation: 2,
+                shadowColor: const Color(0xFFDC2626).withValues(alpha: 0.35),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: 44,
             child: ElevatedButton.icon(
               onPressed: () {
                 // Placeholder for Video Call
               },
-              icon: const Icon(PhosphorIconsFill.videoCamera, size: 24),
+              icon: const Icon(PhosphorIconsFill.videoCamera, size: 18),
               label: const FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   'Video call Tổng đài hỗ trợ',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                 ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryOrange,
                 foregroundColor: Colors.white,
-                elevation: 2,
-                shadowColor: AppColors.primaryOrange.withValues(alpha: 0.4),
+                elevation: 1,
+                shadowColor: AppColors.primaryOrange.withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
@@ -1015,24 +1015,25 @@ class IdentityResultPage extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 56,
+        height: 44,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(width: 8),
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w800,
-                fontSize: 16,
+                fontSize: 14,
               ),
             ),
           ],
