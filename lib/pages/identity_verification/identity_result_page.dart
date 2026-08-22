@@ -5,10 +5,17 @@ import 'package:help_me_app/shared/services/location_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class IdentityResultPage extends StatelessWidget {
+class IdentityResultPage extends StatefulWidget {
   final Map<dynamic, dynamic> data;
 
   const IdentityResultPage({super.key, required this.data});
+
+  @override
+  State<IdentityResultPage> createState() => _IdentityResultPageState();
+}
+
+class _IdentityResultPageState extends State<IdentityResultPage> {
+  int _selectedCandidateIndex = 0;
 
   static Map<String, dynamic> _toMap(dynamic value) {
     if (value is Map) {
@@ -26,10 +33,51 @@ class IdentityResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rootData = _toMap(data);
-    final profile = _toMap(rootData['citizen'] ?? rootData['victim'] ?? rootData['profile']);
-    final medical = _toMap(rootData['record'] ?? rootData['medicalRecord'] ?? profile['medicalRecord']);
-    final dynamic rawContacts = profile['emergencyContacts'] ?? profile['emergency_contacts'] ?? rootData['emergencyContacts'] ?? rootData['contacts'];
+    final rootData = _toMap(widget.data);
+
+    // Extract candidates if face scanning returned multiple matches (1-3)
+    final dynamic rawMatches = rootData['topMatches'];
+    final List<Map<String, dynamic>> candidateList = [];
+    if (rawMatches is List && rawMatches.isNotEmpty) {
+      for (final item in rawMatches) {
+        if (item is Map) {
+          candidateList.add(_toMap(item));
+        }
+      }
+    }
+
+    // Determine active profile & medical record based on selected candidate
+    Map<String, dynamic> profile;
+    Map<String, dynamic> medical;
+    if (candidateList.isNotEmpty &&
+        _selectedCandidateIndex < candidateList.length) {
+      final activeCandidate = candidateList[_selectedCandidateIndex];
+      profile = _toMap(
+        activeCandidate['victim'] ??
+            activeCandidate['citizen'] ??
+            activeCandidate,
+      );
+      medical = _toMap(
+        activeCandidate['record'] ??
+            activeCandidate['medicalRecord'] ??
+            profile['medicalRecord'] ??
+            rootData['record'],
+      );
+    } else {
+      profile = _toMap(
+        rootData['citizen'] ?? rootData['victim'] ?? rootData['profile'],
+      );
+      medical = _toMap(
+        rootData['record'] ??
+            rootData['medicalRecord'] ??
+            profile['medicalRecord'],
+      );
+    }
+
+    final dynamic rawContacts = profile['emergencyContacts'] ??
+        profile['emergency_contacts'] ??
+        rootData['emergencyContacts'] ??
+        rootData['contacts'];
     final List<dynamic> contacts = rawContacts is List ? rawContacts : [];
 
     return Scaffold(
@@ -111,6 +159,12 @@ class IdentityResultPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
+                  // Multi-candidate selector banner if > 1 matches
+                  if (candidateList.length > 1) ...[
+                    _buildCandidateSelector(candidateList),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Identity Card (Medical Record Style)
                   _buildIdentityCard(profile),
                   const SizedBox(height: 16),
@@ -123,6 +177,178 @@ class IdentityResultPage extends StatelessWidget {
           ),
           // Action Buttons Section
           _buildActionSection(context, profile, medical, contacts),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCandidateSelector(List<Map<String, dynamic>> candidateList) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF86EFAC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                PhosphorIconsFill.usersThree,
+                color: Color(0xFF16A34A),
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Tìm thấy ${candidateList.length} người có khuôn mặt tương đồng',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: Color(0xFF15803D),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Nhấn vào từng ứng viên để đối chiếu và xem hồ sơ y tế tương ứng:',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF166534),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 110,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: candidateList.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, idx) {
+                final cand = candidateList[idx];
+                final candVictim = _toMap(cand['victim'] ?? cand['citizen'] ?? cand);
+                final String candName = candVictim['fullName'] ?? 'Ứng viên #${idx + 1}';
+                final String? candAvatar = candVictim['avatarUrl'] ?? candVictim['avatar_url'];
+                final double distance = double.tryParse(cand['distance']?.toString() ?? '') ?? 0.2;
+                final int matchPercent = ((1.0 - (distance / 0.35)) * 100).clamp(50, 99).round();
+                final bool isSelected = _selectedCandidateIndex == idx;
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedCandidateIndex = idx;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: 160,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.white : const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFBBF7D0),
+                        width: isSelected ? 2 : 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Row(
+                      children: [
+                        // Avatar Thumbnail
+                        Container(
+                          width: 44,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: candAvatar != null &&
+                                  candAvatar.isNotEmpty &&
+                                  (candAvatar.startsWith('http://') ||
+                                      candAvatar.startsWith('https://'))
+                              ? Image.network(
+                                  candAvatar,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    PhosphorIconsRegular.userCircle,
+                                    size: 28,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                )
+                              : const Icon(
+                                  PhosphorIconsRegular.userCircle,
+                                  size: 28,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                candName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: isSelected
+                                      ? const Color(0xFF15803D)
+                                      : const Color(0xFF1E293B),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFF86EFAC),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '$matchPercent% khớp',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFF14532D),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
