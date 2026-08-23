@@ -101,7 +101,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                                   ? AppColors.primaryOrange
                                   : AppColors.primaryBlack,
                               fontWeight: FontWeight.w800,
-                              fontSize: 14,
+                              fontSize: 12.5,
                             ),
                           ),
                         ),
@@ -138,7 +138,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                                   ? AppColors.primaryOrange
                                   : AppColors.primaryBlack,
                               fontWeight: FontWeight.w800,
-                              fontSize: 14,
+                              fontSize: 12.5,
                             ),
                           ),
                         ),
