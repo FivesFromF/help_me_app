@@ -353,8 +353,8 @@ class AuthService {
 
   static Future<Map<String, dynamic>> pollScanJob({
     required String jobId,
-    int maxAttempts = 20,
-    Duration interval = const Duration(seconds: 1),
+    int maxAttempts = 60,
+    Duration interval = const Duration(milliseconds: 300),
   }) async {
     final token = await getAccessToken();
     for (int i = 0; i < maxAttempts; i++) {
@@ -774,7 +774,7 @@ class AuthService {
     await uploadBytesToS3(uploadUrl: uploadUrl, bytes: bytes);
 
     // Poll AI worker scan job in DynamoDB
-    final result = await pollScanJob(jobId: jobId, maxAttempts: 20);
+    final result = await pollScanJob(jobId: jobId);
 
     if (result['matchStatus'] == 'NO_MATCH') {
       throw Exception('Không tìm thấy thông tin nạn nhân khớp trong hệ thống');
